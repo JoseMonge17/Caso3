@@ -36,6 +36,64 @@ INSERT INTO vpv_biometric_devices VALUES (
 );
 ```
 
+## Tabla `vpv_biometric_device_usage`
+
+### Propósito y Relaciones
+Registra **cada interacción física** con dispositivos biométricos para:  
+- Cumplir con **ISO/IEC 19792** (historial de uso)  
+- Detectar anomalías (ej: mismo dispositivo usado por múltiples usuarios)  
+
+```sql
+CREATE TABLE `vpv_biometric_device_usage` (
+  `usageid` INT PRIMARY KEY,
+  `use_date` DATETIME NOT NULL,
+  `operation_type` VARCHAR(20) NOT NULL,  -- "ENROLLMENT", "AUTHENTICATION"
+  `result` BIT NOT NULL,                  -- 1=Éxito, 0=Fallo
+  `session_id` VARCHAR(100) NOT NULL,     -- UUID de la sesión
+  `deviceid` INT NOT NULL,                -- FK a dispositivo
+  `userid` INT NOT NULL,                  -- FK a usuario
+  FOREIGN KEY (`deviceid`) REFERENCES `vpv_biometric_devices`(`deviceid`)
+);
+
+/* Ejemplo 1: Registro exitoso de huella */
+INSERT INTO vpv_biometric_device_usage VALUES (
+  8001,
+  NOW(),
+  'ENROLLMENT',
+  1,                    -- Éxito
+  'sess-xyz123',        -- Sesión de registro
+  5,                    -- Lector de huellas ID=5
+  1001                  -- Usuario ID=1001
+);
+
+/* Ejemplo 2: Autenticación fallida */
+INSERT INTO vpv_biometric_device_usage VALUES (
+  8002,
+  NOW(),
+  'AUTHENTICATION',
+  0,                    -- Fallo
+  'sess-abc456',        -- Sesión de login
+  3,                    -- Lector facial ID=3
+  1001
+);
+```
+
+### Flujo de Auditoría con `session_id`
+1. **Vincular eventos dispersos**:  
+   ```sql
+   -- Obtener todas las acciones de una sesión
+   SELECT * FROM vpv_biometric_device_usage
+   WHERE session_id = 'sess-xyz123';
+   ```
+
+2. **Cruzar con auditoría**:  
+   ```sql
+   SELECT a.* FROM vpv_biometric_audit a
+   JOIN vpv_biometric_device_usage u ON a.session_id = u.session_id
+   WHERE u.deviceid = 5;
+   ```
+
+
 ### 2. `vpv_biometric_types`
 **Propósito**: Catalogar tipos de datos biométricos aceptados.  
 **Por qué existe**:  
@@ -213,40 +271,61 @@ INSERT INTO vpv_biometric_audit VALUES (
 ```
 ## Pruebas de vida
 
-### 7. `vpv_liveness_checks`
-**Razón**: Evitar spoofing (suplantación con fotos/videos). Registra:
+## 7. `vpv_livenesschecks` 
 
-- Técnicas de detección de vivacidad
-- Nivel de confianza
-- Metadatos técnicos para auditoría  
+### Propósito y Estructura
+Detecta suplantaciones mediante verificaciones de vivacidad ("liveness"):  
+- **Video con movimientos** (sonreír, girar cabeza)  
+- **Análisis de textura** (detección de máscaras/fotos)  
 
 ```sql
--- Tabla de pruebas de vida (liveness)
-CREATE TABLE vpv_liveness_checks (
-  livenessid INT PRIMARY KEY AUTO_INCREMENT,
-  userid INT NOT NULL,
-  biomediaid INT NOT NULL,
-  check_type VARCHAR(50) NOT NULL, -- 'Video', 'Movimiento', 'Desafío-respuesta', etc.
-  check_date DATETIME NOT NULL,
-  result BIT NOT NULL, -- 1=Pass, 0=Fail
-  confidence_score DECIMAL(5,2),
-  algorithm_used VARCHAR(100),
-  device_info VARCHAR(200), -- Información del dispositivo usado
-  requestid INT, -- Relación con la solicitud de validación
-  FOREIGN KEY (userid) REFERENCES vpv_users(userid),
-  FOREIGN KEY (biomediaid) REFERENCES vpv_biometric_media(biomediaid),
-  FOREIGN KEY (requestid) REFERENCES vpv_requests(requestid)
+CREATE TABLE `vpv_livenesschecks` (
+  `livenessid` INT PRIMARY KEY,
+  `check_type` VARCHAR(50) NOT NULL,    -- "VIDEO", "IRIS_MOVEMENT"
+  `check_date` DATETIME NOT NULL,
+  `result` BIT NOT NULL,                -- 1=Éxito, 0=Fallo
+  `confidence_score` DECIMAL(5,2),      -- 0-100% de confianza
+  `algorithm_used` VARCHAR(100),        -- "FaceLiveness SDK 3.1"
+  `device_info` VARCHAR(200),           -- "iPhone 13, FaceID"
+  `biomediaid` INT,                     -- FK a datos biométricos crudos
+  `userid` INT NOT NULL,
+  `requestid` INT,                      -- FK a solicitud de validación
+  FOREIGN KEY (`biomediaid`) REFERENCES `vpv_biometric_media`(`biomediaid`)
 );
 
-
--- Ejemplo:
-INSERT INTO vpv_liveness_checks
-(livenessid, userid, biomediaid, check_type, check_date, 
- result, confidence_score, algorithm_used)
-VALUES
-(1, 1001, 1, 'Video', NOW(), 
- 1, 99.2, 'FaceLiveness SDK 3.2');
+/* Ejemplo de inserción: */
+INSERT INTO vpv_livenesschecks VALUES (
+  7001,
+  'VIDEO',
+  NOW(),
+  1,                  -- Prueba exitosa
+  98.3,               -- 98.3% de confianza
+  'TrueLiveness 2.0',
+  'Android 13, Samsung Galaxy S22',
+  5001,               -- Video facial almacenado en biomediaid=5001
+  1001,
+  9001                -- RequestID de validación
+);
 ```
+
+### Casos de Uso
+1. **Autenticación con Huella**:  
+   ```sql
+   -- Fallo por huella estática (foto)
+   INSERT INTO vpv_livenesschecks 
+     (check_type, result, confidence_score)
+   VALUES
+     ('FINGERPRINT_STATIC', 0, 12.5);
+   ```
+
+2. **Reconocimiento Facial**:  
+   ```sql
+   -- Éxito en prueba de movimiento
+   INSERT INTO vpv_livenesschecks 
+     (check_type, result, device_info, confidence_score)
+   VALUES
+     ('FACE_MOVEMENT', 1, 'iPhone 15 Pro, FaceID', 99.7);
+   ```
 
 ### 8. `vpv_biometric_validations`
 **Razón**: Registrar cada uso del dato biométrico para:
@@ -281,24 +360,44 @@ VALUES
   (1001, 123, 99.2, 1); -- Huella coincide
 ```
 
+### Orden de Inserción y Protección de Datos
+
+El sistema sigue un **proceso riguroso de 5 fases** para el manejo de datos biométricos, diseñado para cumplir con la Ley 8968 y estándares internacionales:
+
+1. **Registro de Dispositivos**  
+   Primero se registran los dispositivos biométricos certificados en `vpv_biometric_devices`. Esto garantiza que solo hardware autorizado pueda capturar datos.
+
+2. **Obtención de Consentimiento**  
+   Antes de cualquier captura, se registra el consentimiento en `vpv_biometric_consents` vinculado a un `biotypeid` (categoría biométrica).
+
+3. **Captura y Almacenamiento Seguro**  
+   - Los datos crudos (imágenes/videos) se guardan en `vpv_biometric_media` con:  
+     - Cifrado de extremo a extremo (`encryption_key_id`)  
+     - Verificación de integridad (`hashvalue`)  
+   - Se derivan templates irreversibles en `vpv_biometric_templates`.
+
+4. **Validación en Tiempo Real**  
+   Cada uso operativo genera registros en:  
+   - `vpv_biometric_device_usage` (vinculación dispositivo-usuario)  
+   - `vpv_livenesschecks` (pruebas de vida)  
+   - `vpv_biometric_validations` (resultados de comparación)
+
+5. **Auditoría Continua**  
+   Todas las acciones se registran en `vpv_biometric_audit` con IPs cifradas y metadatos.
+
+### Protecciones Clave Implementadas
+| Capa de Protección          | Implementación                                                                 |
+|-----------------------------|--------------------------------------------------------------------------------|
+| **Cifrado**                 | AES-256 para templates + IPs. Llaves gestionadas por AWS KMS/HSM.             |
+| **Minimización de Datos**   | Solo se almacenan templates (no imágenes originales).                         |
+| **Consentimiento**          | Por categoría (`biotypeid`), no por dato individual.                          |
+| **Trazabilidad**            | 4 tablas de auditoría (`audit`, `device_usage`, `livenesschecks`, `validations`). |
+| **Seguridad Física**        | Dispositivos certificados y registrados con hashes de serie.                  |
+
+---
 
 
-## Consideraciones Legales Clave
-
-1. **Consentimiento por categoría** (`biotypeid` en `vpv_biometric_consents`):  
-   - Usuario autoriza "huellas dactilares" en general, no cada huella individual.  
-   - Permite actualizar datos sin nuevo consentimiento (ej: nueva huella).  
-
-2. **Minimización de datos**:  
-   - `vpv_biometric_templates` no almacena imágenes originales.  
-   - `ip_address` siempre cifrado.  
-
-3. **Trazabilidad**:  
-   - `vpv_biometric_audit` registra quién, cuándo y cómo accedió a datos.  
-   - `vpv_biometric_device_usage` vincula dispositivos con operaciones.  
-
-4. **Seguridad**:  
-   - Dispositivos deben estar certificados (`vpv_biometric_devices.certification`).  
-   - Plantillas cifradas (`templatedata VARBINARY`).  
-
-Este diseño cumple con los principios de **privacidad desde el diseño** (Privacy by Design) y **protección de datos personales** según la normativa costarricense e internacional.
+Este diseño garantiza que:  
+1. **Cada dato** tenga consentimiento previo.  
+2. **Cada operación** quede registrada con dispositivo y usuario.  
+3. **Cada acceso** sea cifrado y auditado.
