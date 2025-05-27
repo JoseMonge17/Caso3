@@ -2,7 +2,7 @@
 
 ## Tablas Principales
 
-### 1. `vpv_request_type`
+### 1. vpv_request_type
 **Propósito**: Catalogar los distintos tipos de solicitudes que puede generar un usuario (p. ej. `identity_validation`, `mfa_setup`).  
 **Cumple con**: Flexibilidad para añadir nuevos flujos sin alterar `vpv_requests`.
 
@@ -90,7 +90,7 @@ CREATE TABLE `vpv_group_type` (
   `name`        VARCHAR(60)  NOT NULL   -- Nombre del tipo
 );
 ```
-##Tablas de Integración con APIs Externas
+## Tablas de Integración con APIs Externas
 ### 7. api_providers
 **Propósito**: Registrar proveedores externos de servicios (TSE, Registro Civil).
 **Cumple con**: Gestión de múltiples fuentes de validación.
