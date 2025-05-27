@@ -14,7 +14,7 @@ CREATE TABLE `vpv_request_type` (
 );
 ```
 
-###2. vpv_requests
+### 2. vpv_requests
 **Propósito**: Registrar cada solicitud de validación iniciada por un usuario.
 **Cumple con**: Trazabilidad de flujos (MFA, prueba de vida, documentos, etc.).
 
@@ -33,7 +33,7 @@ CREATE TABLE `vpv_requests` (
 );
 ```
 
-###3. vpv_request_votes
+### 3. vpv_request_votes
 **Propósito**: Guardar el voto de cada validador sobre una solicitud.
 **Cumple con**: Aprobación mancomunada y registro de decisiones.
 ```sql
@@ -50,7 +50,7 @@ CREATE TABLE `vpv_request_votes` (
 );
 ```
 
-###4. vpv_identity_validations
+### 4. vpv_identity_validations
 **Propósito**: Registrar el resultado de la validación de identidad (API externa).
 **Cumple con**: Trazabilidad de fuente oficial (TSE/Registro Civil).
 ```sql
@@ -68,7 +68,7 @@ CREATE TABLE `vpv_identity_validations` (
 );
 ```
 
-###5. vpv_groups
+### 5. vpv_groups
 **Propósito**: Definir grupos o segmentaciones de usuarios (instituciones, comisiones).
 **Cumple con**: Segmentación para votaciones y ponderación.
 ```sql
@@ -81,7 +81,7 @@ CREATE TABLE `vpv_groups` (
 );
 ```
 
-###6. vpv_group_type
+### 6. vpv_group_type
 **Propósito**: Catalogar tipos de grupos (e.g. institutional, operational).
 **Cumple con**: Diferenciación de la naturaleza de cada agrupación.
 ```sql
@@ -91,7 +91,7 @@ CREATE TABLE `vpv_group_type` (
 );
 ```
 ##Tablas de Integración con APIs Externas
-###7. api_providers
+### 7. api_providers
 **Propósito**: Registrar proveedores externos de servicios (TSE, Registro Civil).
 **Cumple con**: Gestión de múltiples fuentes de validación.
 ```sql
@@ -103,7 +103,7 @@ CREATE TABLE `api_providers` (
   `enabled`              BIT           DEFAULT 1   -- 1=Activo, 0=Inactivo
 );
 ```
-###8. api_integrations
+### 8. api_integrations
 **Propósito**: Configurar credenciales y parámetros de integración con cada proveedor.
 **Cumple con**: Seguridad y trazabilidad de llamadas a APIs.
 ```sql
