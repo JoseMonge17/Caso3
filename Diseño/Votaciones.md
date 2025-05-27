@@ -69,16 +69,72 @@ CREATE TABLE vote_rules (
 **Cumple con**: Plazos definidos y configurables, estado de la votación.
 ```sql
 CREATE TABLE vote_sessions (
-  sessionId    INT        PRIMARY KEY,
-  start_date   DATETIME   NOT NULL,  -- Fecha y hora de apertura
-  end_date     DATETIME   NOT NULL,  -- Fecha y hora de cierre
-  status       SMALLINT   NOT NULL,  -- 0=Pendiente,1=Abierta,2=Cerrada
-  visibilityId TINYINT    NOT NULL,  -- FK → vote_result_visibilities(visibilityId)
-  proposal_id  INT        NOT NULL,  -- FK → vpv_proposal(proposalId)
-  FOREIGN KEY (visibilityId) REFERENCES vote_result_visibilities(visibilityId),
-  FOREIGN KEY (proposal_id)  REFERENCES vpv_proposal(proposalId)
+  sessionId        INT          PRIMARY KEY,
+  proposalId       INT          NOT NULL,  -- FK → vpv_proposal(proposalId)
+  voteTypeId       TINYINT      NOT NULL,  -- FK → vote_types(voteTypeId)
+  start_date       DATETIME   NOT NULL,  -- Fecha y hora de apertura
+  end_date         DATETIME   NOT NULL,  -- Fecha y hora de cierre
+  status           SMALLINT     NOT NULL,  -- 0=Pending,1=Open,2=Closed
+  visibilityId TINYINT      NOT NULL,  -- FK → vote_result_visibilities(visibilityId)
+  FOREIGN KEY (voteTypeId)       REFERENCES vote_types(voteTypeId),
+  FOREIGN KEY (visibilityRuleId) REFERENCES vote_result_visibilities(visibilityId)
 );
 
+```
+###  `vote_eligibility`
+
+**Propósito**: Mantener la lista de ciudadanos habilitados para votar en una sesión virtual, asignarles un identificador anónimo (`anonId`) y garantizar que cada uno emita **un solo voto**.
+```sql
+CREATE TABLE vote_eligibility (
+  eligibilityId  INT               PRIMARY KEY,
+  sessionId      INT               NOT NULL,  -- FK → vote_sessions(sessionId)
+  userId         INT               NOT NULL,  -- FK → citizen(id)
+  anonId         UNIQUEIDENTIFIER  NOT NULL,  -- Permite anonimizar el vínculo entre el usuario real y su boleta cifrada.
+  hasVoted       BIT               DEFAULT 0,
+  voteDate   DATETIME          DEFAULT GETDATE(),
+  FOREIGN KEY (sessionId) REFERENCES vote_sessions(sessionId),
+  FOREIGN KEY (userId)    REFERENCES citizen(id),
+  UNIQUE (sessionId, userId)
+);
+```
+### vote_ballots
+**Propósito**: Almacenar las “boletas virtuales” cifradas, junto con la firma digital de quien las emitió y, opcionalmente, la prueba de validez (ZKP).
+```sql
+CREATE TABLE vote_ballots (
+  ballotId      INT             PRIMARY KEY,
+  sessionId     INT             NOT NULL,  -- FK → vote_sessions(sessionId)
+  anonId        UNIQUEIDENTIFIER NOT NULL, -- FK → vote_eligibility(anonId)
+  encryptedVote VARBINARY(255)  NOT NULL,  -- Voto cifrado (AES/ElGamal)
+  proof         VARBINARY(255)  NULL,      -- ZKP de validez (opcional) Demuestra que el voto pertenece al conjunto de opciones válidas (p.ej. “Sí”/“No”), sin revelar cuál.
+    checksum    VARBINARY(255)  NOT NULL,  -- Validar que no se modificaron los campos de un registro
+  FOREIGN KEY (sessionId) REFERENCES vote_sessions(sessionId),
+  FOREIGN KEY (anonId)     REFERENCES vote_eligibility(anonId)
+);
+```
+
+### vote_commitments
+**Propósito**: Soportar un conteo homomórfico de votos y la decriptación distribuida mediante threshold shares.
+```sql
+CREATE TABLE vote_commitments (
+  commitmentId    INT            PRIMARY KEY,
+  sessionId       INT            NOT NULL,  -- FK → vote_sessions(sessionId)
+  encryptedSum    VARBINARY(255) NOT NULL,  -- Suma homomórfica de boletas de todos los `encryptedVote`
+  decryptionShare VARBINARY(255) NOT NULL,  -- Share para decriptación threshold Participación individual para threshold de decriptación
+  FOREIGN KEY (sessionId) REFERENCES vote_sessions(sessionId)
+);
+```
+### vote_audit_log
+**Propósito**: Mantener un registro inmutable (hash chain) de todos los eventos críticos del proceso de votación, para detectar cualquier manipulación.
+```sql
+CREATE TABLE vote_audit_log (
+  logId         INT            PRIMARY KEY,
+  sessionId     INT            NOT NULL,   -- FK → vote_sessions(sessionId)
+  eventType     VARCHAR(50)    NOT NULL,   -- 'eligibility','ballot','tally','decrypt'
+  eventDataHash VARBINARY(64)  NOT NULL,   -- SHA-256 de payload
+  previousHash  VARBINARY(64)  NULL,       -- Hash del evento anterior
+  eventDate     DATETIME       DEFAULT GETDATE(),
+  FOREIGN KEY (sessionId) REFERENCES vote_sessions(sessionId)
+);
 ```
 
 ### vote_result_visibilities
