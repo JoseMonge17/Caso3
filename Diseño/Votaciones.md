@@ -74,13 +74,72 @@ CREATE TABLE vote_sessions (
   voteTypeId       TINYINT      NOT NULL,  -- FK → vote_types(voteTypeId)
   start_date       DATETIME   NOT NULL,  -- Fecha y hora de apertura
   end_date         DATETIME   NOT NULL,  -- Fecha y hora de cierre
-  status           SMALLINT     NOT NULL,  -- 0=Pending,1=Open,2=Closed
+   public_key       VARBINARY(MAX)  NOT NULL,   -- Clave pública ElGamal/ECC usada por clientes
+  threshold_t      TINYINT         NOT NULL,   -- Número mínimo de shares para desencriptación
+  key_shares_n     TINYINT         NOT NULL,   -- Número total de shares generados
+  sessionStatusid           SMALLINT     NOT NULL,  
   visibilityId TINYINT      NOT NULL,  -- FK → vote_result_visibilities(visibilityId)
   FOREIGN KEY (voteTypeId)       REFERENCES vote_types(voteTypeId),
   FOREIGN KEY (visibilityRuleId) REFERENCES vote_result_visibilities(visibilityId)
 );
-
 ```
+
+### `vote_commitments`
+**Propósito**: Almacenar el resultado homomórfico de la suma de todos los ciphertexts de las boletas, usado para el conteo sin descifrar cada voto individual.
+
+```sql
+CREATE TABLE vote_commitments (
+  commitment_id    INT             IDENTITY(1,1) PRIMARY KEY NOT NULL,
+  sessionid      INT             NOT NULL,   
+  ciphertext_sum   VARBINARY(MAX)  NOT NULL,   -- Producto homomórfico de todos los ciphertexts
+  created_at       DATETIME        NOT NULL    -- Fecha/hora de generación
+);
+```
+
+### Shares para desencriptación (desencriptación umbral)
+En un esquema de criptografía umbral (threshold cryptography), la clave privada necesaria para desencriptar un mensaje se divide en n fragmentos o “shares”, distribuidos entre distintas autoridades u “partes” independientes. Cada share, por sí solo, no revela ninguna información sobre la clave completa; se requiere un mínimo de t shares (el umbral) para reconstruir la clave y poder desencriptar. Esto se basa en técnicas como el Shamir’s Secret Sharing, que garantiza que con menos de t shares no se filtre ningún dato del secreto original 
+
+Propiedades clave:
+
+Seguridad perfecta: menos de t shares no aportan información del secreto.
+
+Tolerancia a fallos: el sistema funciona incluso si hasta n–t participantes están caídos o comprometidos.
+
+Descentralización: elimina puntos únicos de fallo o de corrupción, pues ningún actor individual puede desencriptar solo.
+
+### Producto homomórfico
+Un cifrado es homomórfico si permite realizar operaciones sobre los datos cifrados que se corresponden con operaciones sobre los datos en claro. En ElGamal, por ejemplo, existe un homomorfismo multiplicativo
+Ventajas:
+
+Conteo directo: para un sistema de votación, basta multiplicar todos los ciphertexts de votos “1” para obtener un ciphertext que representa el total de votos, sin conocer votos individuales.
+
+Privacidad: el servidor nunca ve los valores en claro, solo realiza agregaciones criptográficas.
+
+Escalabilidad: se reduce la necesidad de desencriptar cada boleta por separado.
+
+### decryption_shares
+**Propósito**: Guardar cada fragmento de la clave privada aportado por las autoridades, necesario para la desencriptación umbral del total homomórfico.
+```sql
+CREATE TABLE decryption_shares (
+  share_id         INT             IDENTITY(1,1) PRIMARY KEY NOT NULL,
+  commitment_id    INT             NOT NULL,   -- FK → vote_commitments(commitment_id)
+  participant_id   INT             NOT NULL,   -- FK → key_share_participants(participant_id)
+  share_value      VARBINARY(MAX)  NOT NULL,   -- Fragmento de clave privada
+  provided_at      DATETIME        NOT NULL    -- Fecha/hora de entrega del share
+);
+```
+
+### key_share_participants
+**Propósito**: Registrar las entidades (autoridades) que poseen fragmentos de la clave privada y exponer su share público para verificación.
+```sql
+CREATE TABLE key_share_participants (
+  participant_id   INT             IDENTITY(1,1) PRIMARY KEY NOT NULL,
+  sessionid      INT             NOT NULL,   -- FK → elections(election_id)
+  name             VARCHAR(100)    NOT NULL,   -- Nombre de la autoridad o rol institucional
+  public_share     VARBINARY(MAX)  NOT NULL    -- Parte pública del share para validación
+);
+```
+
 ###  `vote_eligibility`
 
 **Propósito**: Mantener la lista de ciudadanos habilitados para votar en una sesión virtual, asignarles un identificador anónimo (`anonId`) y garantizar que cada uno emita **un solo voto**.
@@ -97,6 +156,7 @@ CREATE TABLE vote_eligibility (
   UNIQUE (sessionId, userId)
 );
 ```
+
 ### vote_ballots
 **Propósito**: Almacenar las “boletas virtuales” cifradas, junto con la firma digital de quien las emitió y, opcionalmente, la prueba de validez (ZKP).
 ```sql
