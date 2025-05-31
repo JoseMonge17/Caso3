@@ -29,9 +29,13 @@ VALUES
 ```
 
 Almacena información de dispositivos asociados a MFA (móviles, tokens hardware, autenticadores)
+
 authentication_factor especifica el tipo de autenticación (BIOMETRIC, TOTP, SMS, etc.)
+
 serial_hash es un identificador único cifrado del dispositivo para prevenir duplicados
+
 Campos de fecha permiten monitorear actividad y detectar dispositivos inactivos
+
 Relación con vpv_users garantiza que cada dispositivo pertenece a un usuario válido
 
 ---
@@ -65,9 +69,13 @@ VALUES
 ```
 
 Establece una jerarquía de métodos mediante priority y marca el principal con is_primary
+
 identifier_hash protege información sensible (como números de teléfono o emails)
+
 Relaciona usuarios con dispositivos específicos de MFA
+
 method_status permite habilitar/deshabilitar métodos sin eliminarlos
+
 Auditoría completa con fechas de registro y último uso
 
 ---
@@ -99,9 +107,13 @@ VALUES
 ```
 
 Soporta múltiples algoritmos criptográficos (RSA, ECC, Ed25519)
+
 key_status controla el ciclo de vida (ACTIVE, EXPIRED, REVOKED)
+
 secure_storage indica dónde se almacena la clave privada (HSM, KMS, etc.)
+
 Fechas de creación y expiración permiten rotación automática
+
 key_identifier es una referencia única para operaciones criptográficas
 
 ---
@@ -136,9 +148,13 @@ VALUES
 ```
 
 used_factors detalla los factores de autenticación utilizados
+
 Hash de tokens, dispositivos e IPs protege la privacidad
+
 session_status permite revocar sesiones manualmente
+
 Campos temporales controlan duración máxima e inactividad
+
 Relaciona sesiones con métodos y dispositivos específicos
 
 ---
@@ -173,9 +189,13 @@ VALUES
 ```
 
 Códigos de un solo uso con vida corta controlada por expiration_date
+
 remaining_attempts limita intentos fallidos antes de invalidar el código
+
 request_context registra el propósito del código (login, recuperación, etc.)
+
 Hashes de IP y dispositivo permiten detectar intentos sospechosos
+
 code_status controla estado (UNUSED, USED, EXPIRED, INVALIDATED)
 
 ---
@@ -207,9 +227,13 @@ VALUES
 ```
 
 Vincula certificados con claves criptográficas mediante key_id
+
 certificate_status controla validez (VALID, REVOKED, EXPIRED)
+
 crl_distribution apunta a lista de certificados revocados
+
 certificate_signature valida autenticidad del certificado
+
 Soporta PKI (Infraestructura de Clave Pública) completa
 
 ---
@@ -242,9 +266,13 @@ VALUES
 ```
 
 Tokens de un solo uso con ventana temporal estrecha
+
 delivery_method especifica cómo se envió el token (EMAIL, SMS, etc.)
+
 remaining_attemps previene fuerza bruta
+
 Hashes de solicitud permiten auditoría de seguridad
+
 Vinculado a dispositivos específicos para mayor seguridad
 
 ---
@@ -275,9 +303,13 @@ VALUES
 ```
 
 Preguntas y respuestas almacenadas como hashes para seguridad
+
 failed_attempts bloquea temporalmente tras varios intentos fallidos
+
 last_modified_date permite rotación periódica
+
 question_status habilita/deshabilita preguntas individuales
+
 Alternativa de autenticación cuando MFA no está disponible
 
 ---
@@ -310,9 +342,13 @@ VALUES
 ```
 
 Auditoría completa de todos los eventos de autenticación
+
 event_type clasifica eventos (LOGIN, LOGOUT, MFA_ATTEMPT, etc.)
+
 success y error_code permiten análisis de problemas
+
 approx_location deriva geolocalización de IP (hasheada)
+
 Detección de patrones sospechosos o ataques
 
 ---
@@ -346,9 +382,13 @@ VALUES
 ```
 
 Registro inmutable de firmas, cifrados y otras operaciones
+
 operation_type especifica acción (SIGN, VERIFY, ENCRYPT, DECRYPT)
+
 Hashes de entrada/salida permiten verificación posterior
+
 op_signature prueba quién realizó la operación
+
 Cumple con requisitos legales de no repudio
 
 ---
@@ -379,9 +419,13 @@ VALUES
 ```
 
 Automatiza ciclo de vida de claves según políticas de seguridad
+
 rotation_reason documenta por qué se rotó (compromiso, expiración, etc.)
+
 initiated_by registra si fue automático o manual
+
 rotation_signature valida la autenticidad del proceso
+
 Mantiene relación entre clave antigua y nueva
 
 ---
@@ -411,9 +455,13 @@ VALUES
 ```
 
 storage_method especifica ubicación segura (HSM, KMS, etc.)
+
 backup_location_hash identifica la copia sin revelar ubicación
+
 backup_status controla validez (VALID, COMPROMISED)
+
 backup_signature verifica integridad de la copia
+
 Permite recuperación ante desastres sin comprometer seguridad
 
 ---
