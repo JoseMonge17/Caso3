@@ -418,16 +418,6 @@ Permite recuperación ante desastres sin comprometer seguridad
 
 ---
 
-erDiagram
-    vpv_users ||--o{ vpv_mfa_devices : "1:N"
-    vpv_users ||--o{ vpv_user_keys : "1:N"
-    vpv_users ||--o{ vpv_security_questions : "1:N"
-    vpv_mfa_devices ||--o{ vpv_auth_methods : "1:N"
-    vpv_mfa_devices ||--o{ vpv_recovery_tokens : "1:N"
-    vpv_user_keys ||--o{ vpv_digital_certificates : "1:1"
-    vpv_user_keys ||--o{ vpv_key_rotation : "1:N"
-    vpv_user_keys ||--o{ vpv_key_backups : "1:N"
-    vpv_auth_methods ||--o{ vpv_auth_sessions : "1:N"
-    vpv_auth_methods ||--o{ vpv_mfa_codes : "1:N"
-    vpv_auth_sessions ||--o{ vpv_auth_events : "1:N"
-    vpv_auth_sessions ||--o{ vpv_cryptographic_operations : "1:N"
+![deepseek_mermaid_20250531_5ce098](https://github.com/user-attachments/assets/2e3daea6-0e1c-448d-8920-ccae68e7823f)
+
+
