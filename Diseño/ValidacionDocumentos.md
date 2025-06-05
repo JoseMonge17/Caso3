@@ -43,8 +43,6 @@ CREATE TABLE `vpv_digital_documents` (
 );
 ```
 
-### Componentes de IA
-
 
 ### Workflow de Validación
 #### vpv_validation_types
@@ -76,35 +74,42 @@ CREATE TABLE [vpv_validation_request] (
 ```
 
 #### vpv_validation_process_log
-**Propósito**: Define flujos completos de validación
+**Propósito**: Define flujos completos de validación llamados workflows
 ```sql
-CREATE TABLE [vpv_validation_process] (
-  [processid]           INT             PRIMARY KEY,
-  [name]                VARCHAR(100)    NOT NULL,
-  [description]         TEXT            NOT NULL,
-  [enabled]             BIT             NOT NULL,
-  [result]              BIT             NOT NULL,
-  [schedule_interval]   VARCHAR(100)    NOT NULL,
-  [startTime]           DATETIME        NOT NULL,
-  [ai_validatorid]      INT             NULL,     --FK -> ai_service(ai_serviceid)
-  [human_validatorid]   INT             NULL,     --FK -> vpv_human_validators(validatorid)
-  FOREIGN KEY (ai_validatorid)      REFERENCES ai_service(ai_serviceid),
-  FOREIGN KEY (human_validatorid)   REFERENCES vpv_human_validators(validatorid)
+CREATE TABLE `vpv_validation_process_log` (
+  `processid` INT,
+  `name` VARCHAR(100),
+  `description` VARCHAR(200),
+  `enabled` BIT,
+  `schedule_interval` VARCHAR(15),
+  `parameters` JSON,
+  `startTime` DATETIME,
+  `result` INT,
+  PRIMARY KEY (`processid`)
+);
+```
+
+#### vpv_validation_result_type
+**Propósito**: Documentar los tipos de resultados del workflow
+```sql
+CREATE TABLE [vpv_validation_result_type] (
+  [result_typeid] INT,
+  [name] VARCHAR(50),
+  [description] VARCHAR(200),
+  PRIMARY KEY ([result_typeid])
 );
 ```
 
 #### vpv_validation_process_steps_log
 **Propósito**: Pasos individuales dentro de un proceso
 ```sql
-CREATE TABLE [vpv_validation_process_steps] (
-  [process_stepid]  INT     PRIMARY KEY,
-  [order]           INT     NOT NULL,
-  [required]        BIT     NOT NULL,
-  [arguments]       JSON    NOT NULL, --Argumentos del workflow formato JSON
-  [operatorid]      INT     NOT NULL, --FK -> vpv_validation_operator_type(operatorid)
-  [processid]       INT     NOT NULL, --FK -> vpv_validation_process(processid)
-  FOREIGN KEY (operatorid)  REFERENCES vpv_validation_operator_type(operatorid),
-  FOREIGN KEY (processid)   REFERENCES vpv_validation_process(processid)
+CREATE TABLE `vpv_validation_process_steps_log` (
+  `process_stepid` INT,
+  `order` INT,
+  `required` BIT,
+  `processid` INT,
+  PRIMARY KEY (`process_stepid`),
+  FOREIGN KEY (`processid`) REFERENCES `vpv_validation_process_log`(`processid`)
 );
 ```
 
