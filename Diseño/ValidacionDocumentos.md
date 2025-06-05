@@ -103,13 +103,12 @@ CREATE TABLE [vpv_validation_result_type] (
 #### vpv_validation_process_steps_log
 **Propósito**: Pasos individuales dentro de un proceso
 ```sql
-CREATE TABLE `vpv_validation_process_steps_log` (
-  `process_stepid` INT,
-  `order` INT,
-  `required` BIT,
-  `processid` INT,
-  PRIMARY KEY (`process_stepid`),
-  FOREIGN KEY (`processid`) REFERENCES `vpv_validation_process_log`(`processid`)
+CREATE TABLE [vpv_validation_process_steps_log] (
+  [process_stepid] INT,
+  [order] INT,
+  [required] BIT,
+  [processid] INT,
+  PRIMARY KEY ([process_stepid])
 );
 ```
 
