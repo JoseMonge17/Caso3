@@ -28,18 +28,22 @@ CREATE TABLE [vpv_document_type] (
 - Estados de validación (IA/humano)
 - Relación con solicitudes de validación
 ```sql
-CREATE TABLE `vpv_digital_documents` (
-  `documentid` INT,
-  `name` VARCHAR(150),
-  `url` TEXT,
-  `hash` TEXT,
-  `metadata` JSONB,
-  `validation_date` DATETIME,
-  `requestid` INT,
-  `document_typeid` INT,
-  PRIMARY KEY (`documentid`),
-  FOREIGN KEY (`requestid`) REFERENCES `vpv_validation_request`(`requestid`),
-  FOREIGN KEY (`document_typeid`) REFERENCES `vpv_document_type`(`document_typeid`)
+CREATE TABLE [vpv_digital_documents] (
+  [documentid] INT,
+  [name] VARCHAR(150),
+  [url] TEXT,
+  [hash] TEXT,
+  [metadata] JSONB,
+  [validation_date] DATETIME,
+  [requestid] INT,
+  [document_typeid] INT,
+  PRIMARY KEY ([documentid]),
+  CONSTRAINT [FK_vpv_digital_documents.requestid]
+    FOREIGN KEY ([requestid])
+      REFERENCES [vpv_validation_request]([requestid]),
+  CONSTRAINT [FK_vpv_digital_documents.document_typeid]
+    FOREIGN KEY ([document_typeid])
+      REFERENCES [vpv_document_type]([document_typeid])
 );
 ```
 
@@ -76,16 +80,19 @@ CREATE TABLE [vpv_validation_request] (
 #### vpv_validation_process_log
 **Propósito**: Define flujos completos de validación llamados workflows
 ```sql
-CREATE TABLE `vpv_validation_process_log` (
-  `processid` INT,
-  `name` VARCHAR(100),
-  `description` VARCHAR(200),
-  `enabled` BIT,
-  `schedule_interval` VARCHAR(15),
-  `parameters` JSON,
-  `startTime` DATETIME,
-  `result` INT,
-  PRIMARY KEY (`processid`)
+CREATE TABLE [vpv_validation_process_log] (
+  [processid] INT,
+  [name] VARCHAR(100),
+  [description] VARCHAR(200),
+  [enabled] BIT,
+  [schedule_interval] VARCHAR(15),
+  [parameters] JSON,
+  [startTime] DATETIME,
+  [result] INT,
+  PRIMARY KEY ([processid]),
+  CONSTRAINT [FK_vpv_validation_process_log.result]
+    FOREIGN KEY ([result])
+      REFERENCES [vpv_validation_result_type]([result_typeid])
 );
 ```
 
@@ -128,16 +135,4 @@ CREATE TABLE [vpv_validation_audit] (
 );
 ```
 
-### Gestión de validadores
-#### vpv_human_validators
-**Propósito**: Catálogo de validadores humanos autorizados en el sistema. Guarda al usuario relacionado al validador
-```sql
-CREATE TABLE [vpv_human_validators] (
-  [validatorid] INT     PRIMARY KEY,
-  [name]        TEXT    NOT NULL,
-  [public_key]  TEXT    NOT NULL, --Llave pública del validador
-  [enabled]     BIT     NOT NULL,
-  [userid]      INT     NOT NULL, --FK -> vpv_users(userid)
-  FOREIGN KEY (userid) REFERENCES vpv_users(userid)
-);
-```
+
