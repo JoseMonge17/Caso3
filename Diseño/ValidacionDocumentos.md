@@ -4,13 +4,21 @@
 
 ### Gestión de Documentos
 #### vpv_document_type
-**Propósito**: Catálogo de tipos de documentos soportados (DNI, pasaportes, facturas, etc.)
+**Propósito**: Catálogo de tipos de documentos soportados (DNI, pasaportes, facturas, etc.) al igual que los parámetros para un workflow en Airflow
+- Schedule interval es que tan frecuente sucede el workflow (diario, mensual, cada 15 dias, etc). Se puede dejar vacio.
 ```sql
 CREATE TABLE [vpv_document_type] (
-  [document_typeid] INT             PRIMARY KEY ,
-  [name]            VARCHAR(100)    NOT NULL,       --Nombre del tipo de documento
-  [description]     TEXT            NOT NULL,       --Descripción del tipo
-  [enabled]         BIT             NOT NULL        --Si el tipo de documento está activo
+  [document_typeid] INT,
+  [name] VARCHAR(100),
+  [description] TEXT,
+  [enabled] BIT,
+  [workflowid] INT,
+  [workflow_name] VARCHAR(100),
+  [parameters] JSON,
+  [schedule_interval] VARCHAR(15),
+  [order] INT,
+  [url] TEXT,
+  PRIMARY KEY ([document_typeid])
 );
 ```
 
@@ -20,54 +28,23 @@ CREATE TABLE [vpv_document_type] (
 - Estados de validación (IA/humano)
 - Relación con solicitudes de validación
 ```sql
-CREATE TABLE [vpv_digital_documents] (
-  [documentid]              INT             PRIMARY KEY,
-  [name]                    TEXT            NOT NULL,
-  [url]                     TEXT            NOT NULL, --Ubicación del archivo
-  [hash]                    TEXT            NOT NULL,
-  [metadata]                JSONB           NOT NULL, --Datos del archivo
-  [ai_processed]            BIT             NOT NULL, --Verifica si el documento ha sido procesado por la IA
-  [ai_response]             TEXT            NULL,     --Registra la respuesta de la IA sobre el documento
-  [manually_validated]      BIT             NOT NULL, --Verifica si el  documento fue validado por un humano
-  [validation_date]         DATETIME        NULL,     --Registra la fecha de validación del documento
-  [requestid]               INT             NOT NULL, --FK -> vpv_validation_request(requestid)
-  [document_typeid]         INT             NOT NULL, --FK -> vpv_document_type(socument_typeid)
-  FOREIGN KEY (requestid)       REFERENCES vpv_validation_request(requestid),
-  FOREIGN KEY (document_typeid) REFERENCES vpv_document_type(document_typeid)
+CREATE TABLE `vpv_digital_documents` (
+  `documentid` INT,
+  `name` VARCHAR(150),
+  `url` TEXT,
+  `hash` TEXT,
+  `metadata` JSONB,
+  `validation_date` DATETIME,
+  `requestid` INT,
+  `document_typeid` INT,
+  PRIMARY KEY (`documentid`),
+  FOREIGN KEY (`requestid`) REFERENCES `vpv_validation_request`(`requestid`),
+  FOREIGN KEY (`document_typeid`) REFERENCES `vpv_document_type`(`document_typeid`)
 );
 ```
 
 ### Componentes de IA
-#### ai_service
-**Propósito**: Registro de servicios de IA disponibles en el sistema
-```sql
-CREATE TABLE [ai_service] (
-  [ai_serviceid]        INT             PRIMARY KEY,
-  [name]                VARCHAR(100)    NOT NULL,
-  [description]         TEXT            NOT NULL,
-  [endpoint_base]       TEXT            NOT NULL, --Endpoint base
-  [version]             TEXT            NOT NULL, --Versión del modelo
-  [provider]            TEXT            NOT NULL, --Proveedor del servicio(AWS, Azure, etc)
-);
-```
 
-#### vpv_ai_interactions
-**Propósito**: Auditoría detallada de cada llamada a IA
-```sql
-CREATE TABLE [vpv_ai_interactions] (
-  [interactionid]   INT         PRIMARY KEY,
-  [endpoint]        TEXT        NOT NULL,
-  [payload]         JSONB       NOT NULL, --Guarda la información enviada a la IA
-  [response]        JSONB       NOT NULL, --Registra la respuesta recibida por la IA
-  [status_code]     BIT         NOT NULL,
-  [duration_ms]     BIT         NOT NULL, --Registra la duración en milisegundos de respuesta
-  [date]            DATETIME    NOT NULL,
-  [requestid]       INT         NOT NULL, --FK -> vpv_validation_request(requestid)
-  [ai_serviceid]    INT         NOT NULL, --FK -> ai_service(ai_serviceid)
-  FOREIGN KEY (requestid)       REFERENCES vpv_validation_request(requestid),
-  FOREIGN KEY (ai_serviceid)    REFERENCES ai_service(ai_serviceid)
-);
-```
 
 ### Workflow de Validación
 #### vpv_validation_types
@@ -81,7 +58,7 @@ CREATE TABLE [vpv_validation_types] (
 );
 ```
 
-#### vpv_validation_request
+#### vpv_validation_request_log
 **Propósito**: Punto central para gestionar solicitudes de validación
 ```sql
 CREATE TABLE [vpv_validation_request] (
@@ -98,7 +75,7 @@ CREATE TABLE [vpv_validation_request] (
 );
 ```
 
-#### vpv_validation_process
+#### vpv_validation_process_log
 **Propósito**: Define flujos completos de validación
 ```sql
 CREATE TABLE [vpv_validation_process] (
@@ -116,7 +93,7 @@ CREATE TABLE [vpv_validation_process] (
 );
 ```
 
-#### vpv_validation_process_steps
+#### vpv_validation_process_steps_log
 **Propósito**: Pasos individuales dentro de un proceso
 ```sql
 CREATE TABLE [vpv_validation_process_steps] (
@@ -131,16 +108,6 @@ CREATE TABLE [vpv_validation_process_steps] (
 );
 ```
 
-#### vpv_validation_operator_type
-**Propósito**: Clasifica operadores de validación
-```sql
-CREATE TABLE [vpv_vaidation_operator_type] (
-  [operatorid]      INT             PRIMARY KEY,
-  [name]            VARCHAR(100)    NOT NULL,
-  [description]     TEXT            NOT NULL,
-  [enabled]         BIT             NOT NULL
-);
-```
 
 #### vpv_validation_audit
 **Propósito**: Registro inmutable de cada acción de validación. Registrá quien validó, el resultado y la relación con el paso específico
