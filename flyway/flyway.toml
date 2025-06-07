@@ -2,30 +2,38 @@ databaseType = "SqlServer"
 id = "0ee0ec1a-606f-41d1-9475-1ec54eb682be"
 name = "flyway"
 
+[environments.VotoPuraVida]
+url = "jdbc:sqlserver://localhost:1434;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
+
+[environments.development]
+displayName = "Development database"
+url = "jdbc:sqlserver://localhost:1434;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
+
 [flyway]
 defaultSchema = "dbo"
+environment = "development"
 locations = [ "filesystem:migrations" ]
 mixed = true
 outOfOrder = true
 schemaModelLocation = "schema-model"
 validateMigrationNaming = true
 
-  [flyway.check]
-  majorTolerance = 0
+[flyway.check]
+majorTolerance = 0
 
 [flyway.sqlserver.clean]
 mode = "all"
 
 [flywayDesktop]
 developmentEnvironment = "development"
-shadowEnvironment = "shadow"
 enableMigrations = false
+shadowEnvironment = "shadow"
 
 [redgateCompare]
 filterFile = "filter.rgf"
 
-  [redgateCompare.sqlserver]
-  filterFile = "Filter.scpf"
+[redgateCompare.sqlserver]
+filterFile = "Filter.scpf"
 
 [redgateCompare.sqlserver.data.options.comparison]
 compressTemporaryFiles = false
@@ -116,6 +124,7 @@ ignoreWhiteSpace = true
 ignoreWithElementOrder = true
 ignoreWithEncryption = false
 ignoreWithNoCheck = true
+
 
 [environments.VotoPuraVida]
 url = "jdbc:sqlserver://localhost:1434;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
