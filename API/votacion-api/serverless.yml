@@ -20,10 +20,10 @@ functions:
           path: /api/providers/orm
           method: get
 
-  getPorSP:
-    handler: src/functions/getPorSP.handler
+  vote:
+    handler: src/functions/vote.handler
     events:
       - httpApi:
-          path: /api/providers/sp
-          method: get
+          path: /api/vote
+          method: post
 
