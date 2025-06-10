@@ -1,8 +1,12 @@
-const { findByUsername } = require('../data/authUserData');
+const { findById } = require('../data/authUserData');
+const { getUserFromToken } = require('../auth');
 
-async function vote({usuario}) 
+async function vote(event) 
 {
-    const user = await findByUsername(usuario.username);
+    const tokenPayload = getUserFromToken(event);
+
+    const user = await findById(tokenPayload.id);
+    
     if (!user) throw new Error('Usuario no encontrado');
 
     // validar estado

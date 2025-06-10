@@ -1,11 +1,11 @@
 const { sequelize, User, UserStatus } = require('../db/sequelize');
 
-async function findByUsername(username) 
+async function findById(userid) 
 {
-    return await User.findOne({
-        where: { username },
+    return await User.findByPk(userid, 
+    {
         include: [{ model: UserStatus, as: 'status' }]
     });
 }
 
-module.exports = { findByUsername };
+module.exports = { findById };
