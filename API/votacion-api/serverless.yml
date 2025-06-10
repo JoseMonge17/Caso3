@@ -1,0 +1,29 @@
+service: votacion-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+
+plugins:
+  - serverless-offline
+
+package:
+  individually: true
+
+functions:
+  getByORM:
+    handler: src/functions/getByORM.handler
+    events:
+      - httpApi:
+          path: /api/providers/orm
+          method: get
+
+  getPorSP:
+    handler: src/functions/getPorSP.handler
+    events:
+      - httpApi:
+          path: /api/providers/sp
+          method: get
+
