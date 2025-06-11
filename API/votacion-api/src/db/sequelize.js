@@ -69,5 +69,94 @@ const User = sequelize.define('vpv_users', {
 
 User.belongsTo(UserStatus, { foreignKey: 'statusid', as: 'status' });
 
+const UserDemographic = sequelize.define('vpv_user_demographics', {
+  user_demographicid: { type: DataTypes.SMALLINT, primaryKey: true, autoIncrement: true },
+  enabled: { type: DataTypes.BOOLEAN, allowNull: false },
+  value: { type: DataTypes.STRING(50), allowNull: false },
+  demographicid: { type: DataTypes.INTEGER, allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_user_demographics',
+  timestamps: false
+});
 
-module.exports = { sequelize, ApiProvider, User, UserStatus };
+// Criterio de votación
+const VoteCriteria = sequelize.define('vote_criterias', {
+  criteriaid: { type: DataTypes.TINYINT, primaryKey: true, autoIncrement: true },
+  type: { type: DataTypes.STRING(50), allowNull: false },
+  datatype: { type: DataTypes.STRING(200), allowNull: false },
+  demographicid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vote_criterias',
+  timestamps: false
+});
+
+const VoteSession = sequelize.define('vote_sessions', {
+  sessionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  startDate: { type: DataTypes.DATE, allowNull: false },
+  endDate: { type: DataTypes.DATE, allowNull: false },
+  public_key: { type: DataTypes.BLOB, allowNull: false },
+  threshold: { type: DataTypes.TINYINT, allowNull: false },
+  key_shares: { type: DataTypes.TINYINT, allowNull: false },
+  sessionStatusid: { type: DataTypes.SMALLINT, allowNull: false },
+  voteTypeid: { type: DataTypes.TINYINT, allowNull: false },
+  visibilityid: { type: DataTypes.TINYINT, allowNull: false }
+}, {
+  tableName: 'vote_sessions',
+  timestamps: false
+});
+
+const VotingRule = sequelize.define('vote_voting_criteria', {
+  ruleid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  value: { type: DataTypes.STRING(75), allowNull: false },
+  weight: { type: DataTypes.DECIMAL(5, 2), allowNull: false },
+  enabled: { type: DataTypes.BOOLEAN, allowNull: false },
+  sessionid: { type: DataTypes.INTEGER, allowNull: false },
+  criteriaid: { type: DataTypes.TINYINT, allowNull: false }
+}, {
+  tableName: 'vote_voting_criteria',
+  timestamps: false
+});
+
+const VoteElegibility = sequelize.define('vote_elegibility', {
+  elegibilityid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  anonid: { type: DataTypes.UUID, allowNull: false },
+  voted: { type: DataTypes.BOOLEAN, allowNull: false },
+  registeredDate: { type: DataTypes.DATE, allowNull: false },
+  sessionid: { type: DataTypes.INTEGER, allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vote_elegibility',
+  timestamps: false
+});
+
+User.hasMany(VoteElegibility, {
+  foreignKey: 'userid',
+  as: 'eligibility'
+});
+
+VoteSession.hasMany(VoteElegibility, {
+  foreignKey: 'sessionid',
+  as: 'eligibility'
+});
+
+VotingRule.belongsTo(VoteCriteria, {
+  foreignKey: 'criteriaid',
+  as: 'criteria'
+});
+
+VotingRule.belongsTo(VoteSession, {
+  foreignKey: 'sessionid',
+  as: 'session'
+});
+
+module.exports = {
+  sequelize,
+  User,
+  UserStatus,
+  UserDemographic,
+  VoteCriteria,
+  VotingRule,
+  VoteSession,
+  VoteElegibility
+};

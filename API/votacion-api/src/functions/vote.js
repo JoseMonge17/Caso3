@@ -5,7 +5,7 @@ module.exports.handler = async (event) =>
     try {
     const body = JSON.parse(event.body);
 
-    const result = await vote(event);
+    const result = await vote(event, body);
 
     return {
         statusCode: 200,

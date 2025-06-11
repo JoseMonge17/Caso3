@@ -1,4 +1,4 @@
-const { sequelize, User, UserStatus } = require('../db/sequelize');
+const { User, UserStatus, UserDemographic } = require('../db/sequelize');
 
 async function findById(userid) 
 {
@@ -8,4 +8,12 @@ async function findById(userid)
     });
 }
 
-module.exports = { findById };
+async function getDemographicData(userid) 
+{
+    return await UserDemographic.findAll(
+    {
+        where: { userid, enabled: true }
+    });
+}
+
+module.exports = { findById, getDemographicData, };
