@@ -1,5 +1,5 @@
 const { findById, getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted } = require('../data/voteData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility } = require('../data/voteData');
 const { getUserFromToken } = require('../auth');
 
 async function vote(event, body) 
@@ -7,6 +7,9 @@ async function vote(event, body)
     const tokenPayload = getUserFromToken(event);
 
     const user = await findById(tokenPayload.id);
+
+    // Validar credenciales del usuario
+    // Validar autenticación multifactor (MFA) y comprobación de vida
 
     // Confirmar existencia activa del ciudadano en el sistema
     if (!user) throw new Error('Usuario no encontrado');
@@ -43,7 +46,7 @@ async function vote(event, body)
         throw new Error('Usuario no cumple con los criterios para votar en esta sesión');
     }
 
-    //      Verificar que la propuesta siga abierta en el rango de fechas definido
+    //Verificar que la propuesta siga abierta en el rango de fechas definido
     const session = await getSessionById(sessionid);
     if (!session) throw new Error('Sesión de voto no encontrada');
 
@@ -54,13 +57,29 @@ async function vote(event, body)
         throw new Error('La sesión de votación está fuera de su rango de fechas');
     }
 
-    //   Confirmar que el usuario no ha votado previamente en esa propuesta   
+    //Confirmar que el usuario no ha votado previamente en esa propuesta   
     const record = await hasUserVoted(user.userid, sessionid);
     if (record) 
     {
         if(record.voted) throw new Error('El usuario ya ha votado en esta sesión');
     }
 
+    // Registrar el voto en la base de datos asociando la propuesta, fecha y decisión
+    let eligibility = record;
+    if (!eligibility) {
+        // Crear nuevo registro de elegibilidad
+        eligibility = await createEligibility(user.userid, sessionid);
+    }
+
+    await registerEncryptedVote(
+    {
+        sessionid,
+        eligibility,
+        encryptedVote: 'voto_cifrado',
+        signature: 'firma_digital',
+        proof: 'prueba',
+        checksum: 'verificacion'
+    });
 
     return { userid: user.userid, username: user.username};
 }
