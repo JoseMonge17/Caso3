@@ -122,11 +122,25 @@ const VoteElegibility = sequelize.define('vote_elegibility', {
   elegibilityid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   anonid: { type: DataTypes.UUID, allowNull: false },
   voted: { type: DataTypes.BOOLEAN, allowNull: false },
-  registeredDate: { type: DataTypes.DATE, allowNull: false },
+  registeredDate: { type: DataTypes.DATE},
   sessionid: { type: DataTypes.INTEGER, allowNull: false },
   userid: { type: DataTypes.INTEGER, allowNull: false }
 }, {
   tableName: 'vote_elegibility',
+  timestamps: false
+});
+
+const VoteBallot = sequelize.define('vote_ballots', {
+  vote_registryid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  voteDate: { type: DataTypes.DATE },
+  signature: { type: DataTypes.BLOB, allowNull: false },
+  encryptedVote: { type: DataTypes.BLOB, allowNull: false },
+  proof: { type: DataTypes.BLOB, allowNull: false },
+  checksum: { type: DataTypes.BLOB, allowNull: false },
+  anonid: { type: DataTypes.INTEGER, allowNull: false },
+  sessionid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vote_ballots',
   timestamps: false
 });
 
@@ -158,5 +172,6 @@ module.exports = {
   VoteCriteria,
   VotingRule,
   VoteSession,
-  VoteElegibility
+  VoteElegibility,
+  VoteBallot
 };
