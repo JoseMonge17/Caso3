@@ -1,6 +1,7 @@
 const { findById, getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility } = require('../data/voteData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment } = require('../data/voteData');
 const { getUserFromToken } = require('../auth');
+const { sequelize } = require('../db/sequelize');
 
 async function vote(event, body) 
 {
@@ -29,17 +30,20 @@ async function vote(event, body)
     const votingRules = await getVotingRulesForSession(sessionid);
 
     //      Verifica si el usuario cumple con al menos una regla de votación activa
-    const isAllowed = votingRules.some( // Recorre todas las reglas activas de la sesión
-    rule =>
-        userDemographics.some( // Por cada regla, busca si el usuario tiene un dato demográfico que coincida
-        demo =>
-            // El tipo de dato demográfico (por ejemplo: género, provincia) debe ser el mismo
+
+    const matchingRules = votingRules.filter(rule =>
+        userDemographics.some(demo =>
             demo.demographicid === rule.criteria.demographicid &&
-            // El valor del dato debe coincidir con el valor definido en la regla
             demo.value.toLowerCase() === rule.value.toLowerCase()
         )
     );
 
+    // Verifica si cumple al menos una regla
+    const isAllowed = matchingRules.length > 0;
+
+    // Obtiene el mayor peso entre las reglas que el usuario cumple
+    const maxWeight = isAllowed ? matchingRules.reduce((max, rule) => Math.max(max, parseFloat(rule.weight)), 0) : 0;
+    
     //      Valida Si la votación tiene al menos un criterio y si cumple con al menos una
     if (votingRules.length > 0 && !isAllowed) 
     {
@@ -66,20 +70,50 @@ async function vote(event, body)
 
     // Registrar el voto en la base de datos asociando la propuesta, fecha y decisión
     let eligibility = record;
-    if (!eligibility) {
-        // Crear nuevo registro de elegibilidad
-        eligibility = await createEligibility(user.userid, sessionid);
+
+    const allOptionIds = [];
+
+    for (const answer of body.answers) 
+    {
+        if (Array.isArray(answer.optionsid)) 
+        {
+            allOptionIds.push(...answer.optionsid);
+        }
+    }
+    
+    //Inicio Transaccion
+    const t = await sequelize.transaction();
+    try {
+        if (!eligibility) {
+            // Crear nuevo registro de elegibilidad
+            eligibility = await createEligibility(user.userid, sessionid);
+        }
+        // Cifrar el voto utilizando la llave vinculada a la identidad del votante
+        await registerEncryptedVote(
+        {
+            sessionid,
+            eligibility,
+            encryptedVote: 'voto_cifrado',
+            signature: 'firma_digital',
+            proof: 'prueba',
+            checksum: 'verificacion'
+        });
+        // Sumarizar el voto dentro de la colección de resultados cifrados sin exponer contenido
+        for (const optionid of allOptionIds) 
+        {
+            await updateCommitment(optionid, maxWeight);
+            for (const demo of userDemographics) 
+            {
+                await updateDemographicStat(demo.demographicid, optionid, demo.value);
+            }
+        }
+
+    } catch (error) {
+        await t.rollback(); // Revierte todo si algo falla
+        throw error;
     }
 
-    await registerEncryptedVote(
-    {
-        sessionid,
-        eligibility,
-        encryptedVote: 'voto_cifrado',
-        signature: 'firma_digital',
-        proof: 'prueba',
-        checksum: 'verificacion'
-    });
+    
 
     return { userid: user.userid, username: user.username};
 }
