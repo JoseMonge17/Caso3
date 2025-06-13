@@ -1,4 +1,4 @@
-const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot } = require('../db/sequelize');
+const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment } = require('../db/sequelize');
 const crypto = require('crypto');
 
 async function getVotingRulesForSession(sessionid) {
@@ -46,8 +46,46 @@ async function createEligibility(userid, sessionid)
         sessionid,
         userid
     });
-    console.log("Adios")
     return eligibility;
+}
+
+async function updateDemographicStat(demographicid, optionid, value) {
+    const existing = await VoteDemographicStat.findOne({
+        where: { demographicid, optionid }
+    });
+
+    if (existing) {
+        existing.sum += 1;
+        await existing.save();
+        return { updated: true };
+    } else {
+        await VoteDemographicStat.create({
+        sum: 1,
+        value,
+        demographicid,
+        optionid
+        });
+        return { created: true };
+    }
+}
+
+async function updateCommitment(optionid, maxWeight) 
+{
+    const existing = await VoteCommitment.findOne({ where: { optionid } });
+    console.log(maxWeight)
+    if (existing) 
+        {
+        existing.sum += 1;
+        existing.value += maxWeight;
+        await existing.save();
+    } else 
+    {
+        await VoteCommitment.create({
+        optionid,
+        sum: 1,
+        value: maxWeight
+        });
+    }
 }
 
 module.exports = {
@@ -55,6 +93,8 @@ module.exports = {
   getSessionById,
   hasUserVoted,
   registerEncryptedVote,
-  createEligibility
+  createEligibility,
+  updateDemographicStat,
+  updateCommitment
 };
 

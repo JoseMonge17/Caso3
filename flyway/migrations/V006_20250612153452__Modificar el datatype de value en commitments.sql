@@ -1,0 +1,2 @@
+ALTER TABLE vote_commitments
+ALTER COLUMN value DECIMAL(12,2) NOT NULL;

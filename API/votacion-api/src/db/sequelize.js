@@ -144,6 +144,27 @@ const VoteBallot = sequelize.define('vote_ballots', {
   timestamps: false
 });
 
+const VoteDemographicStat = sequelize.define('vote_demographic_stats', {
+  statid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+  sum: { type: DataTypes.INTEGER, allowNull: false },
+  value: { type: DataTypes.STRING(100), allowNull: false },
+  demographicid: { type: DataTypes.INTEGER, allowNull: false },
+  optionid: { type: DataTypes.TINYINT, allowNull: false }
+}, {
+  tableName: 'vote_demographic_stats',
+  timestamps: false
+});
+
+const VoteCommitment = sequelize.define('vote_commitments', {
+  commitmentid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+  value: { type: DataTypes.INTEGER, allowNull: false },
+  sum: { type: DataTypes.INTEGER, allowNull: false },
+  optionid: { type: DataTypes.TINYINT, allowNull: false }
+}, {
+  tableName: 'vote_commitments',
+  timestamps: false
+});
+
 User.hasMany(VoteElegibility, {
   foreignKey: 'userid',
   as: 'eligibility'
@@ -167,11 +188,13 @@ VotingRule.belongsTo(VoteSession, {
 module.exports = {
   sequelize,
   User,
+  VoteCommitment,
   UserStatus,
   UserDemographic,
   VoteCriteria,
   VotingRule,
   VoteSession,
   VoteElegibility,
-  VoteBallot
+  VoteBallot,
+  VoteDemographicStat
 };
