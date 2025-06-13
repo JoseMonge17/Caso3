@@ -19,6 +19,9 @@ functions:
       - http:
           path: /api/providers/orm
           method: get
+          authorizer:
+            name: authorizerFunction
+            type: request
 
   vote:
     handler: src/functions/vote.handler
@@ -26,6 +29,9 @@ functions:
       - http:
           path: /api/vote
           method: post
+          authorizer:
+            name: authorizerFunction
+            type: request
 
   invest:
     handler: src/functions/invest.handler
@@ -38,6 +44,6 @@ functions:
             type: request
 
   authorizerFunction:
-    handler: src/functions/auth.handler
+    handler: src/functions/authMiddleware.handler
 
 
