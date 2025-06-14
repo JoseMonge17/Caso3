@@ -1,6 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-const sequelize = new Sequelize('VotoPuraVida', 'votouser', '1234', {
+const sequelize = new Sequelize('VotoPuraVida', 'votouser', 'YourStrong@Password', {
   host: 'localhost',
   dialect: 'mssql',
   dialectOptions: {
@@ -165,6 +165,69 @@ const VoteCommitment = sequelize.define('vote_commitments', {
   timestamps: false
 });
 
+const AuthSession = sequelize.define('AuthSession', {
+    sessionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    device_id: { type: DataTypes.INTEGER, allowNull: true },
+    start_date: { type: DataTypes.DATE, allowNull: false },
+    last_activity_date: { type: DataTypes.DATE, allowNull: false },
+    expiration_date: { type: DataTypes.DATE, allowNull: true },
+    session_token_hash: { type: DataTypes.BLOB, allowNull: false },
+    key_id: { type: DataTypes.INTEGER, allowNull: false },
+  }, {
+    tableName: 'vpv_auth_sessions',
+    timestamps: false
+  });
+
+// vpv_roles
+const Role = sequelize.define('Role', {
+  roleid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  rolename: { type: DataTypes.STRING(30), allowNull: false },
+  description: { type: DataTypes.STRING(70), allowNull: false },
+  systemrole: { type: DataTypes.BOOLEAN, allowNull: false },
+  asignationdate: { type: DataTypes.DATE, allowNull: false }
+}, {
+  tableName: 'vpv_roles',
+  timestamps: false
+});
+
+// vpv_user_roles
+const UserRole = sequelize.define('UserRole', {
+  user_rolid: { type: DataTypes.SMALLINT, primaryKey: true, autoIncrement: true },
+  enabled: { type: DataTypes.BOOLEAN, allowNull: false },
+  roleid: { type: DataTypes.INTEGER, allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_user_roles',
+  timestamps: false
+});
+
+// vpv_permissions
+const Permission = sequelize.define('Permission', {
+  permissionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  permissioncode: { type: DataTypes.STRING(10), allowNull: false },
+  description: { type: DataTypes.STRING(70), allowNull: false },
+  htmlObject: { type: DataTypes.STRING(100), allowNull: false },
+  moduleid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_permissions',
+  timestamps: false
+});
+
+// vpv_rolepermissions
+const RolePermission = sequelize.define('RolePermission', {
+  userrolesid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  asignationdate: { type: DataTypes.DATE, allowNull: false },
+  checksum: { type: DataTypes.BLOB, allowNull: false },
+  enable: { type: DataTypes.BOOLEAN, allowNull: false },
+  deleted: { type: DataTypes.BOOLEAN, allowNull: false },
+  lastupdate: { type: DataTypes.DATE, allowNull: false },
+  roleid: { type: DataTypes.INTEGER, allowNull: false },
+  permissionid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_rolepermissions',
+  timestamps: false
+});
+
 User.hasMany(VoteElegibility, {
   foreignKey: 'userid',
   as: 'eligibility'
@@ -185,6 +248,19 @@ VotingRule.belongsTo(VoteSession, {
   as: 'session'
 });
 
+User.hasMany(UserRole, { foreignKey: 'userid' });
+UserRole.belongsTo(User, { foreignKey: 'userid' });
+
+UserRole.belongsTo(Role, { foreignKey: 'roleid' });
+Role.hasMany(UserRole, { foreignKey: 'roleid' });
+
+Role.hasMany(RolePermission, { foreignKey: 'roleid' });
+RolePermission.belongsTo(Role, { foreignKey: 'roleid' });
+
+Permission.hasMany(RolePermission, { foreignKey: 'permissionid' });
+RolePermission.belongsTo(Permission, { foreignKey: 'permissionid' });
+
+
 module.exports = {
   sequelize,
   User,
@@ -196,5 +272,10 @@ module.exports = {
   VoteSession,
   VoteElegibility,
   VoteBallot,
-  VoteDemographicStat
+  VoteDemographicStat,
+  AuthSession,
+  UserRole, 
+  Role, 
+  RolePermission, 
+  Permission,
 };

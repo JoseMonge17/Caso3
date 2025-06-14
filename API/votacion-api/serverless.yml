@@ -21,7 +21,7 @@ functions:
           method: get
           authorizer:
             name: authorizerFunction
-            type: request
+            type: token
 
   vote:
     handler: src/functions/vote.handler
@@ -31,7 +31,7 @@ functions:
           method: post
           authorizer:
             name: authorizerFunction
-            type: request
+            type: token
 
   invest:
     handler: src/functions/invest.handler
@@ -41,8 +41,8 @@ functions:
           method: post
           authorizer:
             name: authorizerFunction
-            type: request
-
+            type: token
+  
   authorizerFunction:
     handler: src/functions/authMiddleware.handler
 
