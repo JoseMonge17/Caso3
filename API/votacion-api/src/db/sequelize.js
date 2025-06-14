@@ -228,6 +228,19 @@ const RolePermission = sequelize.define('RolePermission', {
   timestamps: false
 });
 
+const UserKey = sequelize.define('UserKey', {
+  key_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  algorithm: { type: DataTypes.STRING(50), allowNull: false },
+  creation_date: { type: DataTypes.DATE, allowNull: false },
+  key_status: { type: DataTypes.STRING(20), allowNull: false },
+  key_usage: { type: DataTypes.STRING(20), allowNull: false },
+  public_key: { type: DataTypes.BLOB, allowNull: false }
+}, {
+  tableName: 'vpv_user_keys',
+  timestamps: false
+});
+
 User.hasMany(VoteElegibility, {
   foreignKey: 'userid',
   as: 'eligibility'
@@ -260,6 +273,8 @@ RolePermission.belongsTo(Role, { foreignKey: 'roleid' });
 Permission.hasMany(RolePermission, { foreignKey: 'permissionid' });
 RolePermission.belongsTo(Permission, { foreignKey: 'permissionid' });
 
+User.hasMany(UserKey, { foreignKey: 'userid' });
+UserKey.belongsTo(User, { foreignKey: 'userid' });
 
 module.exports = {
   sequelize,
@@ -278,4 +293,5 @@ module.exports = {
   Role, 
   RolePermission, 
   Permission,
+  UserKey
 };

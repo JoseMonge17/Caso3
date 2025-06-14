@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = "clave_ultrasecreta_para_pruebas"; 
-const { getUser, getSessionByToken, getPermissionsByUser } = require('../services/authService');
+const { getUser, getSessionByToken, getPermissionsByUser, getUserKeyById } = require('../services/authService');
 
 
 module.exports.handler = async (event) => {
@@ -16,12 +16,13 @@ module.exports.handler = async (event) => {
     console.log("salí session");
     const permissions = await getPermissionsByUser(user.userid);
 
-    // const userkey = await getUserKeyById(session.sessionid);
+    const userkey = await getUserKeyById(session.key_id);
 
     const data = {
       "user": user,
       "permissions": permissions,
-      "session": session
+      "session": session,
+      "userkey": userkey
     };
 
     console.log("todo OK");
