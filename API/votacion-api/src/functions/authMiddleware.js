@@ -58,3 +58,28 @@ module.exports.handler = async (event) => {
     };
   }
 };
+
+
+
+/* 
+SESIÓN POR TOKEN 
+
+-- Insert into vpv_auth_sessions table
+INSERT INTO [dbo].[vpv_auth_sessions] (
+    [device_id],
+    [start_date],
+    [last_activity_date],
+    [expiration_date],
+    [session_token_hash],
+    [key_id]
+) VALUES (
+    NULL,  -- device_id (assuming no device association)
+    DATEADD(SECOND, 1749918151, '1970-01-01'),  -- start_date (converted from iat)
+    DATEADD(SECOND, 1749918151, '1970-01-01'),  -- last_activity_date (same as start_date initially)
+    DATEADD(SECOND, 1750638151, '1970-01-01'),  -- expiration_date (converted from exp)
+    HASHBYTES('SHA2_256', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibmFtZSI6IlZpY3RvcmlhIiwiaWF0IjoxNzQ5OTY2OTM5LCJleHAiOjE3NTA2ODY5Mzl9.EQ5nYbEG8fxLYo-9fHJzo6O02Sw7UGHhGq2HzwRdGGc'),  -- session_token_hash
+    1  -- key_id (matching the inserted key)
+);
+
+
+*/
