@@ -11,7 +11,7 @@ async function getUser(userId)
     if (!user) throw new Error('Usuario no encontrado');
 
     //      Validar estado
-    if (user.status.name !== "Activo") {
+    if (user.status.name !== "Active") {
         throw new Error(`Usuario en estado '${user.status.name}'`);
     }
     
