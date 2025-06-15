@@ -16,14 +16,34 @@ functions:
   getByORM:
     handler: src/functions/getByORM.handler
     events:
-      - httpApi:
+      - http:
           path: /api/providers/orm
           method: get
+          authorizer:
+            name: authorizerFunction
+            type: token
 
-  getPorSP:
-    handler: src/functions/getPorSP.handler
+  vote:
+    handler: src/functions/vote.handler
     events:
-      - httpApi:
-          path: /api/providers/sp
-          method: get
+      - http:
+          path: /api/vote
+          method: post
+          authorizer:
+            name: authorizerFunction
+            type: token
+
+  invest:
+    handler: src/functions/invest.handler
+    events:
+      - http:
+          path: /api/invest
+          method: post
+          authorizer:
+            name: authorizerFunction
+            type: token
+  
+  authorizerFunction:
+    handler: src/functions/authMiddleware.handler
+
 
