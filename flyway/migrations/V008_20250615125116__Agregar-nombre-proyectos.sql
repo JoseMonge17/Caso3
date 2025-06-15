@@ -1,0 +1,2 @@
+ALTER TABLE cf_projects
+ADD name VARCHAR(100) NOT NULL;
