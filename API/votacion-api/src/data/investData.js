@@ -5,10 +5,10 @@ async function ejecutarInversionSP(params) {
     proposalid: params.proposalid,
     userid: params.userid,
     monto: params.monto,
-    codigoPago: params.codigoPago || null,
-    metodoPagoId: params.metodoPagoId || 1,
+    codigoPago: params.codigoPago,
     numeroreferencia: params.numeroreferencia,  
-    token: params.token           
+    token: params.token,
+    metodoPagoId: params.metodoPagoId || 1,           
   });
 }
 

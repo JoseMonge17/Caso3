@@ -7,11 +7,11 @@ module.exports.handler = async (event) => {
   const user = data.user;
   console.log(data);
   try {
-    //const result = await procesarInversionSP(event.body, user);
+    const result = await procesarInversionSP(event.body, user);
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify("papa")
+      body: JSON.stringify(result)
     };
   } catch (err) {
     return {
