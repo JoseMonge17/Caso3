@@ -1,13 +1,11 @@
-const { ejecutarInversionSP } = require('../data/inversionData');
-const { getUserFromToken } = require('../auth');
+const { ejecutarInversionSP } = require('../data/investData');
 
-async function procesarInversionSP(event) {
+async function procesarInversionSP(body, user) {
   // 1. Obtener userid del token
-  const tokenPayload = getUserFromToken(event);
-  const userid = tokenPayload.id; 
+  const userid = user.userid; 
 
   // 2. Parsear y validar input 
-  const input = JSON.parse(event.body || '{}');
+  const input = JSON.parse(body || '{}');
   if (!input.proposalid || !input.monto) {
     throw { statusCode: 400, message: 'Faltan proposalid o monto' };
   }

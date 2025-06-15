@@ -1,17 +1,17 @@
-//const { procesarInversionSP } = require('../services/investService');
+const { procesarInversionSP } = require('../services/investService');
 
 module.exports.handler = async (event) => {
   console.log("ya llegue al invest");
-  //console.log(event);
 
-  const user = JSON.parse(event.requestContext.authorizer.user);
-  console.log(user);
+  const data = JSON.parse(event.requestContext.authorizer.data);
+  const user = data.user;
+  console.log(data);
   try {
-    //const result = await procesarInversionSP(event);
+    //const result = await procesarInversionSP(event.body, user);
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify("todo bien")
+      body: JSON.stringify("papa")
     };
   } catch (err) {
     return {
