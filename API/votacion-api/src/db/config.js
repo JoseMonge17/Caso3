@@ -3,7 +3,7 @@ const sql = require('mssql');
 const config = {
   user: 'votouser',
   password: 'YourStrong@Password',
-  server: 'localhost',
+  server: 'localhost', 
   database: 'VotoPuraVida',
   options: {
     encrypt: true,
@@ -11,19 +11,19 @@ const config = {
   }
 };
 
-// función que permite ejecutar SP con parámetros
-async function executeSP(spName, params = {}) {
+async function executeSP(spName, params = {}, typesConfig = {}) {
   try {
     const pool = await sql.connect(config);
     const request = pool.request();
-    
-    // Asigna parámetros directamente desde un JSON
+
     Object.entries(params).forEach(([key, value]) => {
-      request.input(key, sql.VarChar, value); // Tipo por defecto: VarChar
+      // Usa configuración explícita o determina el tipo
+      const type = typesConfig[key] || determineType(key, value);
+      request.input(key, type, value);
     });
 
     const result = await request.execute(spName);
-    return result.recordset; // Devuelve los datos insertados/consultados
+    return result.recordset;
   } catch (err) {
     console.error(`Error en SP ${spName}:`, err);
     throw err;
