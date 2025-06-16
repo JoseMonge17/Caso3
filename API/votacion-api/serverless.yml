@@ -14,11 +14,11 @@ package:
 
 functions:
   getByORM:
-    handler: src/functions/getByORM.handler
+    handler: src/functions/getPorSP.handler
     events:
       - http:
-          path: /api/providers/orm
-          method: get
+          path: /api/pruebaSP
+          method: post
           authorizer:
             name: authorizerFunction
             type: token

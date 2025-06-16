@@ -1,8 +1,11 @@
-const { getProvidersBySP } = require('../services/providerService');
+const { procesarSP } = require('../services/providerService');
 
-module.exports.handler = async () => {
+module.exports.handler = async (event) => {
+  
+  const data = JSON.parse(event.requestContext.authorizer.data);
+  user = data.user;
   try {
-    const result = await getProvidersBySP();
+    const result = await procesarSP(event.body, user);
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
@@ -15,3 +18,11 @@ module.exports.handler = async () => {
     };
   }
 };
+
+/*
+{
+  "name": "Costa Rica",
+  "codeISO": "CR",
+  "enable": 1,
+}
+*/
