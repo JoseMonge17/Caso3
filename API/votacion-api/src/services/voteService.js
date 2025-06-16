@@ -1,19 +1,18 @@
 const { findById, getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment } = require('../data/voteData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote } = require('../data/voteData');
 const { getUserFromToken } = require('../auth');
 const { sequelize } = require('../db/sequelize');
 const { verifyMfaCode } = require('../data/MfaVerification');
 const { saveLivenessData } = require('../data/livenessData');
+const crypto = require('crypto');
+const { Console } = require('console');
 
 
 
-async function vote(event, body) 
+async function vote(data, body) 
 {
-    //const tokenPayload = getUserFromToken(event);
+    const user = data.user
 
-    const user = await findById(2);
-
-    // Validar credenciales del usuario
     // Validar autenticación multifactor (MFA) y comprobación de vida
     const { authenticated, error } = await verifyMfaCode(body.methodid, body.codeMFA);
 
@@ -32,7 +31,7 @@ async function vote(event, body)
     if (!user) throw new Error('Usuario no encontrado');
 
     //      Validar estado
-    if (user.status.name !== "Activado") {
+    if (user.status.name !== "Active") {
         throw new Error(`Usuario en estado '${user.status.name}'`);
     }
 
@@ -53,7 +52,6 @@ async function vote(event, body)
             demo.value.toLowerCase() === rule.value.toLowerCase()
         )
     );
-
     // Verifica si cumple al menos una regla
     const isAllowed = matchingRules.length > 0;
 
@@ -89,7 +87,7 @@ async function vote(event, body)
 
     const allOptionIds = [];
 
-    for (const answer of body.answers) 
+    for (const answer of body.ballot.answers) 
     {
         if (Array.isArray(answer.optionsid)) 
         {
@@ -97,43 +95,73 @@ async function vote(event, body)
         }
     }
     
-    //Inicio Transaccion
-    const t = await sequelize.transaction();
-    try {
-        if (!eligibility) {
-            // Crear nuevo registro de elegibilidad
-            eligibility = await createEligibility(user.userid, sessionid);
-        }
+    const votoString = JSON.stringify(body.ballot.answers);
+
+    let vote = votoString
+
+    let vote_userid = user.userid
+
+    //Ver si la votacion es secreta
+    if(session.sessionStatusid==1)
+    {
         // Cifrar el voto utilizando la llave vinculada a la identidad del votante
-        await registerEncryptedVote(
-        {
-            sessionid,
-            eligibility,
-            encryptedVote: 'voto_cifrado',
-            signature: 'firma_digital',
-            proof: 'prueba',
-            checksum: 'verificacion'
-        });
-        //Vote backup
+            // Convertir la clave recibida a Buffer real
+        const keyBuffer = Buffer.from(data.userkey.publicKey.data);
+            // Derivar una clave de 256 bits para AES
+        const aesKey = crypto.createHash('sha256').update(keyBuffer).digest(); // 32 bytes
+        
+        const cipher = crypto.createCipheriv('aes-256-ecb', aesKey, null);
+        vote = cipher.update(votoString, 'utf8', 'base64');
+        vote += cipher.final('base64');
 
-        // Sumarizar el voto dentro de la colección de resultados cifrados sin exponer contenido
-        for (const optionid of allOptionIds) 
-        {
-            await updateCommitment(optionid, maxWeight);
-            for (const demo of userDemographics) 
-            {
-                await updateDemographicStat(demo.demographicid, optionid, demo.value);
-            }
-        }
-
-    } catch (error) {
-        await t.rollback(); // Revierte todo si algo falla
-        throw error;
+        vote_userid = null
     }
 
-    
+    //Inicio Transaccion
+    try {
+        
+        const result = await sequelize.transaction(async (t) => {
+            if (!eligibility) {
+                // Crear nuevo registro de elegibilidad
+                eligibility = await createEligibility(user.userid, sessionid, t);
+            }
 
-    return { userid: user.userid, username: user.username};
+            await registerEncryptedVote(
+            {
+                sessionid,
+                eligibility,
+                encryptedVote: vote,
+                signature: body.ballot.signature,
+                proof: body.ballot.proof,
+                userid: vote_userid,
+                transaction: t
+            });
+
+            //Vote backup
+            await backupVote({
+                sessionid,
+                eligibility,
+                encryptedVote: vote,
+                signature: body.ballot.signature,
+                proof: body.ballot.proof,
+                transaction: t
+            });
+
+            // Sumarizar el voto dentro de la colección de resultados cifrados sin exponer contenido
+            for (const optionid of allOptionIds) 
+            {
+                await updateCommitment(optionid, maxWeight, t);
+                for (const demo of userDemographics) 
+                {
+                    await updateDemographicStat(demo.demographicid, optionid, demo.value, t);
+                }
+            }
+        });
+        return result;
+    } catch (error) {
+        console.error('Error en transacción de voto: ', error);
+        return { success: false, error: error.message };
+    }
 }
 
 module.exports = { vote };

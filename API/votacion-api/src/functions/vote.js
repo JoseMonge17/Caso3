@@ -3,14 +3,16 @@ const { vote } = require('../services/voteService');
 module.exports.handler = async (event) => 
 {
     try {
-    const body = JSON.parse(event.body);
+        const data = JSON.parse(event.requestContext.authorizer.data);
 
-    const result = await vote(event, body);
+        const body = JSON.parse(event.body);
 
-    return {
-        statusCode: 200,
-        body: JSON.stringify(result)
-    };
+        const result = await vote(data, body);
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify(result)
+        };
 
     } catch (error) {
         return {

@@ -1,6 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-const sequelize = new Sequelize('VotoPuraVida', 'votouser', 'YourStrong@Password', {
+const sequelize = new Sequelize('VotoPuraVida', 'votouser', '1234', {
   host: 'localhost',
   dialect: 'mssql',
   dialectOptions: {
@@ -102,8 +102,6 @@ const VoteSession = sequelize.define('vote_sessions', {
   startDate: { type: DataTypes.DATE, allowNull: false },
   endDate: { type: DataTypes.DATE, allowNull: false },
   public_key: { type: DataTypes.BLOB, allowNull: false },
-  threshold: { type: DataTypes.TINYINT, allowNull: false },
-  key_shares: { type: DataTypes.TINYINT, allowNull: false },
   sessionStatusid: { type: DataTypes.SMALLINT, allowNull: false },
   voteTypeid: { type: DataTypes.TINYINT, allowNull: false },
   visibilityid: { type: DataTypes.TINYINT, allowNull: false }
@@ -141,10 +139,11 @@ const VoteBallot = sequelize.define('vote_ballots', {
   voteDate: { type: DataTypes.DATE },
   signature: { type: DataTypes.BLOB, allowNull: false },
   encryptedVote: { type: DataTypes.BLOB, allowNull: false },
-  proof: { type: DataTypes.BLOB, allowNull: false },
+  proof: { type: DataTypes.BLOB, allowNull: true },
   checksum: { type: DataTypes.BLOB, allowNull: false },
   anonid: { type: DataTypes.INTEGER, allowNull: false },
-  sessionid: { type: DataTypes.INTEGER, allowNull: false }
+  sessionid: { type: DataTypes.INTEGER, allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: true }
 }, {
   tableName: 'vote_ballots',
   timestamps: false
@@ -335,6 +334,15 @@ const VpvLivenessCheckMedia = sequelize.define('vpv_livenesschecks_media', {
   timestamps: false
 });
 
+const VoteBackup = sequelize.define('vote_backup', {
+  backupid: { type: DataTypes.TINYINT, primaryKey: true, autoIncrement: true },
+  register: { type: DataTypes.TEXT, allowNull: false }
+}, {
+  tableName: 'vote_backup',
+  timestamps: false
+});
+
+
 VpvLivenessCheck.hasMany(VpvLivenessCheckMedia, { foreignKey: 'livenessid' });
 VpvBiometricMedia.hasMany(VpvLivenessCheckMedia, { foreignKey: 'biomediaid' });
 
@@ -414,5 +422,6 @@ module.exports = {
   MFADevice,
   VpvBiometricMedia,
   VpvLivenessCheck,
-  VpvLivenessCheckMedia
+  VpvLivenessCheckMedia,
+  VoteBackup
 };
