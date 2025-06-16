@@ -1,10 +1,9 @@
-const { findById, getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions } = require('../data/voteData');
+const { getDemographicData } = require('../data/authUserData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal } = require('../data/voteData');
 const { sequelize } = require('../db/sequelize');
 const { verifyMfaCode } = require('../data/MfaVerification');
 const { saveLivenessData } = require('../data/livenessData');
 const crypto = require('crypto');
-const { Console } = require('console');
 
 
 
@@ -175,9 +174,9 @@ async function listVotes(data, body)
         throw new Error(error);
     }
 
-    //const result = await saveLivenessData(body.livenessCheck, body.biometricMedia, user.userid);
+    const result = await saveLivenessData(body.livenessCheck, body.biometricMedia, user.userid);
 
-    //if(!result.success) throw new Error(result.error);
+    if(!result.success) throw new Error(result.error);
 
     if(!body.livenessCheck.result) throw new Error("Identidad no confirmada")
 
@@ -201,14 +200,40 @@ async function listVotes(data, body)
     // Extraer los votos asociados, descifrarlos y mostrar: propuesta, fecha y decisión (resumen, no detalle)
     for (const ballot of ballots) 
     {
+        const propuesta = await getProposal(ballot.sessionid);
+
+        // Validacion del checksum
+        const esValido = verifyChecksumBallot(ballot);
+
+        if (!esValido) 
+        {
+            console.warn(`Checksum no coincide para ballot ${ballot.vote_registryid}`);
+            votosSecretos.push({
+                propuesta,
+                fecha: new Date(ballot.voteDate).toLocaleString('es-CR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                    timeZone: 'America/Costa_Rica'
+                }),
+                decision: "Su voto fue malversado"
+            })
+            continue;
+        }
+
         let voto = null
 
-        if (!ballot.userid) voto = decryptVote(ballot.encryptedVote, userKey);
+        if (!ballot.userid) voto = desencriptarVoto(ballot.encryptedVote, userKey);
         else voto = decodeJson(ballot.encryptedVote);
 
         if (voto) 
         {
             votosSecretos.push({
+                propuesta,
                 fecha: new Date(ballot.voteDate).toLocaleString('es-CR', {
                     day: '2-digit',
                     month: '2-digit',
@@ -223,6 +248,8 @@ async function listVotes(data, body)
             });
         }
     }
+    // Registrar esta operación como evento de consulta auditada
+    await insertLog("Consulta auditada de últimas 5 votaciones realizada", body.livenessCheck.device_info, "Modulo votaciones / Mis ultimas 5 votaciones", user.userid, "userid", 1, 1, 1);
 
     return votosSecretos;
 }
@@ -238,7 +265,8 @@ function decodeJson(buffer)
     }
 }
 
-function decryptVote(encryptedBuffer, keyBuffer) {
+function desencriptarVoto(encryptedBuffer, keyBuffer) 
+{
     try {
         const aesKey = crypto.createHash('sha256').update(keyBuffer).digest();
 
@@ -277,6 +305,30 @@ async function formatearVotoEstructurado(voto)
             Respuestas: respuestas
         };
     });
+}
+
+function verifyChecksumBallot(ballot) {
+    try {
+        const sigBuffer = Buffer.from(ballot.signature);
+        const voteBuffer = Buffer.from(ballot.encryptedVote);
+        const proofBuffer = ballot.proof ? Buffer.from(ballot.proof) : Buffer.alloc(0);
+
+        const hash = crypto.createHash('sha256');
+        hash.update(sigBuffer);
+        hash.update(voteBuffer);
+        hash.update(Buffer.from('VotoPuraVidaCheckSumAsegurado1'));
+        hash.update(proofBuffer);
+        hash.update(Buffer.from(ballot.anonid.toString()));
+        hash.update(Buffer.from(ballot.sessionid.toString()));
+
+        const checksumGenerado = hash.digest();
+        const checksumOriginal = Buffer.from(ballot.checksum);
+
+        return checksumGenerado.equals(checksumOriginal);
+    } catch (err) {
+        console.error('Error verificando checksum:', err.message);
+        return false;
+    }
 }
 
 module.exports = { vote, listVotes };

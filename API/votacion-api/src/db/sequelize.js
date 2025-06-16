@@ -365,6 +365,59 @@ const VoteOption = sequelize.define('vote_options', {
     questionid: { type: DataTypes.INTEGER, allowNull: false }
 }, { tableName: 'vote_options', timestamps: false });
 
+const VpvLog = sequelize.define('vpv_logs', {
+    logid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    description: { type: DataTypes.STRING(200), allowNull: false },
+    posttime: { type: DataTypes.DATE, allowNull: false },
+    computer: { type: DataTypes.STRING(100), allowNull: false },
+    trace: { type: DataTypes.TEXT, allowNull: false },
+    reference_id1: { type: DataTypes.BIGINT, allowNull: true },
+    reference_id2: { type: DataTypes.BIGINT, allowNull: true },
+    value1: { type: DataTypes.STRING(180), allowNull: true },
+    value2: { type: DataTypes.STRING(180), allowNull: true },
+    checksum: { type: DataTypes.STRING(45), allowNull: false },
+    log_typeid: { type: DataTypes.INTEGER, allowNull: false },
+    log_sourceid: { type: DataTypes.INTEGER, allowNull: false },
+    log_severityid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+    tableName: 'vpv_logs',
+    timestamps: false
+});
+
+const CfProposalVote = sequelize.define('cf_proposal_votes', {
+    proposal_voteid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    date: { type: DataTypes.DATE, allowNull: false },
+    result: { type: DataTypes.BOOLEAN, allowNull: false },
+    sessionid: { type: DataTypes.INTEGER, allowNull: false },
+    proposalid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+    tableName: 'cf_proposal_votes',
+    timestamps: false
+});
+
+
+
+const VpvProposal = sequelize.define('vpv_proposal', {
+    proposalid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    name: { type: DataTypes.STRING(100), allowNull: false },
+    enabled: { type: DataTypes.BOOLEAN, allowNull: false },
+    current_version: { type: DataTypes.INTEGER, allowNull: false },
+    description: { type: DataTypes.STRING(255), allowNull: false },
+    submission_date: { type: DataTypes.DATE, allowNull: false },
+    version: { type: DataTypes.INTEGER, allowNull: false },
+    origin_typeid: { type: DataTypes.INTEGER, allowNull: false },
+    userid: { type: DataTypes.INTEGER, allowNull: false },
+    statusid: { type: DataTypes.INTEGER, allowNull: false },
+    proposal_typeid: { type: DataTypes.INTEGER, allowNull: false },
+    entityid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+    tableName: 'vpv_proposal',
+    timestamps: false
+});
+
+VpvProposal.associate = models => {
+    VpvProposal.hasMany(models.cf_proposal_votes, { foreignKey: 'proposalid' });
+};
 
 VpvLivenessCheck.hasMany(VpvLivenessCheckMedia, { foreignKey: 'livenessid' });
 VpvBiometricMedia.hasMany(VpvLivenessCheckMedia, { foreignKey: 'biomediaid' });
@@ -448,5 +501,8 @@ module.exports = {
   VpvLivenessCheckMedia,
   VoteBackup,
   VoteQuestion,
-  VoteOption
+  VoteOption,
+  VpvLog,
+  CfProposalVote,
+  VpvProposal
 };
