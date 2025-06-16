@@ -342,6 +342,29 @@ const VoteBackup = sequelize.define('vote_backup', {
   timestamps: false
 });
 
+const VoteQuestion = sequelize.define('vote_questions', {
+    questionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    description: { type: DataTypes.STRING(200), allowNull: false },
+    required: { type: DataTypes.BOOLEAN, allowNull: false },
+    max_answers: { type: DataTypes.SMALLINT, allowNull: false },
+    createDate: { type: DataTypes.DATE, allowNull: false },
+    updateDate: { type: DataTypes.DATE },
+    question_typeid: { type: DataTypes.SMALLINT, allowNull: false },
+    sessionid: { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: 'vote_questions', timestamps: false });
+
+const VoteOption = sequelize.define('vote_options', {
+    optionid: { type: DataTypes.TINYINT, primaryKey: true, autoIncrement: true },
+    description: { type: DataTypes.STRING(200), allowNull: false },
+    value: { type: DataTypes.STRING(100), allowNull: false },
+    url: { type: DataTypes.STRING(250), allowNull: false },
+    order: { type: DataTypes.TINYINT, allowNull: false },
+    checksum: { type: DataTypes.BLOB, allowNull: false },
+    createDate: { type: DataTypes.DATE, allowNull: false },
+    updateDate: { type: DataTypes.DATE },
+    questionid: { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: 'vote_options', timestamps: false });
+
 
 VpvLivenessCheck.hasMany(VpvLivenessCheckMedia, { foreignKey: 'livenessid' });
 VpvBiometricMedia.hasMany(VpvLivenessCheckMedia, { foreignKey: 'biomediaid' });
@@ -423,5 +446,7 @@ module.exports = {
   VpvBiometricMedia,
   VpvLivenessCheck,
   VpvLivenessCheckMedia,
-  VoteBackup
+  VoteBackup,
+  VoteQuestion,
+  VoteOption
 };

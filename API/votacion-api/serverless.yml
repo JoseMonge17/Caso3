@@ -32,6 +32,16 @@ functions:
           authorizer:
             name: authorizerFunction
             type: token
+  
+  listVotes:
+    handler: src/functions/listVotes.handler
+    events:
+      - http:
+          path: /api/listVotes
+          method: post
+          authorizer:
+            name: authorizerFunction
+            type: token
 
   invest:
     handler: src/functions/invest.handler

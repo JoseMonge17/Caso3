@@ -1,4 +1,5 @@
-const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup } = require('../db/sequelize');
+const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption } = require('../db/sequelize');
+const { Op } = require('sequelize');
 const crypto = require('crypto');
 
 async function getVotingRulesForSession(sessionid) {
@@ -22,7 +23,7 @@ async function hasUserVoted(userid, sessionid) {
 
 async function registerEncryptedVote({ sessionid, eligibility, encryptedVote, signature, proof, transaction, userid }) {
     const sigBuffer = Buffer.from(signature, 'base64');
-    const voteBuffer = Buffer.from(encryptedVote, 'base64');
+    const voteBuffer = userid ? Buffer.from(encryptedVote, 'utf-8') : Buffer.from(encryptedVote, 'base64');
     const proofBuffer = proof ? Buffer.from(proof, 'base64') : Buffer.alloc(0);
 
     const hash = crypto.createHash('sha256');
@@ -117,6 +118,55 @@ async function updateCommitment(optionid, maxWeight, transaction) {
     }
 }
 
+async function getLastFiveVotes(userId)
+{
+    try 
+    {
+        const elegibilities = await VoteElegibility.findAll({
+        where: {
+            userid: userId,
+            voted: true
+        },
+        order: [['elegibilityid', 'DESC']],
+        limit: 5
+        });
+
+        const anonIds = elegibilities.map(e => e.elegibilityid);
+
+        if (anonIds.length === 0) return [];
+
+        const ballots = await VoteBallot.findAll({
+        where: {
+            anonid: {
+            [Op.in]: anonIds
+            }
+        }
+        });
+
+        return ballots;
+    } catch (error) {
+        console.error('Error al obtener votos por userId:', error.message);
+        return [];
+    }
+}
+
+async function getQuestionsAndOptions(questionIds) 
+{
+    const questions = await VoteQuestion.findAll(
+    {
+        where: { questionid: { [Op.in]: questionIds } },
+        raw: true
+    });
+
+    const options = await VoteOption.findAll(
+    {
+        where: { questionid: { [Op.in]: questionIds } },
+        raw: true
+    });
+
+    return { questions, options };
+}
+
 module.exports = {
   getVotingRulesForSession,
   getSessionById,
@@ -125,6 +175,8 @@ module.exports = {
   createEligibility,
   updateDemographicStat,
   updateCommitment,
-  backupVote
+  backupVote,
+  getLastFiveVotes,
+  getQuestionsAndOptions
 };
 
