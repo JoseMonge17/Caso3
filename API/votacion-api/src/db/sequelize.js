@@ -12,6 +12,12 @@ const sequelize = new Sequelize('VotoPuraVida', 'votouser', 'YourStrong@Password
   logging: false
 });
 
+const { DATE } = require('sequelize');
+DATE.prototype._stringify = function _stringify(date, options) {
+  date = this._applyTimezone(date, options);
+  return date.format('YYYY-MM-DD HH:mm:ss.SSS'); // ✅ sin +00:00
+};
+
 async function testConnection() {
   try {
     await sequelize.authenticate();
@@ -241,6 +247,115 @@ const UserKey = sequelize.define('UserKey', {
   timestamps: false
 });
 
+const AuthMethod = sequelize.define('vpv_auth_methods', {
+  method_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  device_id: { type: DataTypes.INTEGER, allowNull: true },
+  method_type: { type: DataTypes.STRING(50), allowNull: false },
+  identifier_hash: { type: DataTypes.STRING(255), allowNull: false },
+  registration_date: { type: DataTypes.DATE, allowNull: false },
+  last_used_date: { type: DataTypes.DATE, allowNull: true },
+  method_status: { type: DataTypes.STRING(20), allowNull: false },
+  priority: { type: DataTypes.INTEGER, allowNull: false },
+  is_primary: { type: DataTypes.BOOLEAN, allowNull: false }
+}, {
+  tableName: 'vpv_auth_methods',
+  timestamps: false
+});
+
+const MFADevice = sequelize.define('vpv_mfa_devices', {
+  deviceid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  device_name: { type: DataTypes.STRING(50), allowNull: false },
+  registration_date: { type: DataTypes.DATE, allowNull: false },
+  last_used_date: { type: DataTypes.DATE, allowNull: true },
+  device_status: { type: DataTypes.STRING(20), allowNull: false },
+  serial_hash: { type: DataTypes.BLOB, allowNull: false },
+  authentication_factor: { type: DataTypes.STRING(50), allowNull: false }
+}, {
+  tableName: 'vpv_mfa_devices',
+  timestamps: false
+});
+
+const MFACode = sequelize.define('vpv_mfa_codes', {
+  code_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  method_id: { type: DataTypes.INTEGER, allowNull: false },
+  device_id: { type: DataTypes.INTEGER, allowNull: true },
+  code_hash: { type: DataTypes.BLOB, allowNull: false },
+  generation_date: { type: DataTypes.DATE, allowNull: false },
+  expiration_date: { type: DataTypes.DATE, allowNull: false },
+  remaining_attempts: { type: DataTypes.INTEGER, allowNull: false },
+  code_status: { type: DataTypes.STRING(20), allowNull: false },
+  request_context: { type: DataTypes.STRING(255), allowNull: true },
+  request_ip_hash: { type: DataTypes.BLOB, allowNull: true },
+  request_device_hash: { type: DataTypes.BLOB, allowNull: true }
+}, {
+  tableName: 'vpv_mfa_codes',
+  timestamps: false
+});
+
+const VpvBiometricMedia = sequelize.define('vpv_biometric_media', {
+  biomediaid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  filename: { type: DataTypes.STRING(100), allowNull: false },
+  storage_url: { type: DataTypes.STRING(255), allowNull: false },
+  file_size: { type: DataTypes.INTEGER, allowNull: false },
+  uploaddate: { type: DataTypes.DATE, allowNull: false },
+  hashvalue: { type: DataTypes.BLOB, allowNull: false },
+  encryption_key_id: { type: DataTypes.STRING(255), allowNull: false },
+  is_original: { type: DataTypes.BOOLEAN, allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  biotypeid: { type: DataTypes.INTEGER, allowNull: false },
+  mediatypeid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_biometric_media',
+  timestamps: false
+});
+
+const VpvLivenessCheck = sequelize.define('vpv_livenesschecks', {
+  livenessid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  check_type: { type: DataTypes.STRING(50), allowNull: false },
+  check_date: { type: DataTypes.DATE, allowNull: false },
+  result: { type: DataTypes.BOOLEAN, allowNull: false },
+  confidence_score: { type: DataTypes.DECIMAL(5, 2), allowNull: false },
+  algorithm_used: { type: DataTypes.STRING(100), allowNull: false },
+  device_info: { type: DataTypes.STRING(200), allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  requestid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_livenesschecks',
+  timestamps: false
+});
+
+const VpvLivenessCheckMedia = sequelize.define('vpv_livenesschecks_media', {
+  livemediaid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  livenessid: { type: DataTypes.INTEGER, allowNull: false },
+  biomediaid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_livenesschecks_media',
+  timestamps: false
+});
+
+VpvLivenessCheck.hasMany(VpvLivenessCheckMedia, { foreignKey: 'livenessid' });
+VpvBiometricMedia.hasMany(VpvLivenessCheckMedia, { foreignKey: 'biomediaid' });
+
+VpvLivenessCheckMedia.belongsTo(VpvLivenessCheck, { foreignKey: 'livenessid' });
+VpvLivenessCheckMedia.belongsTo(VpvBiometricMedia, { foreignKey: 'biomediaid' });
+
+User.hasMany(MFADevice, { foreignKey: 'userid' });
+User.hasMany(AuthMethod, { foreignKey: 'userid' });
+
+MFADevice.belongsTo(User, { foreignKey: 'userid' });
+MFADevice.hasMany(AuthMethod, { foreignKey: 'device_id' });
+MFADevice.hasMany(MFACode, { foreignKey: 'device_id' });
+
+AuthMethod.belongsTo(User, { foreignKey: 'userid' });
+AuthMethod.belongsTo(MFADevice, { foreignKey: 'device_id' });
+AuthMethod.hasMany(MFACode, { foreignKey: 'method_id' });
+
+MFACode.belongsTo(AuthMethod, { foreignKey: 'method_id' });
+MFACode.belongsTo(MFADevice, { foreignKey: 'device_id' });
+
+
 User.hasMany(VoteElegibility, {
   foreignKey: 'userid',
   as: 'eligibility'
@@ -293,5 +408,11 @@ module.exports = {
   Role, 
   RolePermission, 
   Permission,
-  UserKey
+  UserKey,
+  MFACode,
+  AuthMethod,
+  MFADevice,
+  VpvBiometricMedia,
+  VpvLivenessCheck,
+  VpvLivenessCheckMedia
 };

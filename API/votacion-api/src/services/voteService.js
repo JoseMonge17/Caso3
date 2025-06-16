@@ -2,15 +2,31 @@ const { findById, getDemographicData } = require('../data/authUserData');
 const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment } = require('../data/voteData');
 const { getUserFromToken } = require('../auth');
 const { sequelize } = require('../db/sequelize');
+const { verifyMfaCode } = require('../data/MfaVerification');
+const { saveLivenessData } = require('../data/livenessData');
+
+
 
 async function vote(event, body) 
 {
-    const tokenPayload = getUserFromToken(event);
+    //const tokenPayload = getUserFromToken(event);
 
-    const user = await findById(tokenPayload.id);
+    const user = await findById(2);
 
     // Validar credenciales del usuario
     // Validar autenticación multifactor (MFA) y comprobación de vida
+    const { authenticated, error } = await verifyMfaCode(body.methodid, body.codeMFA);
+
+    if (!authenticated) 
+    {
+        throw new Error(error);
+    }
+
+    const result = await saveLivenessData(body.livenessCheck, body.biometricMedia, user.userid);
+
+    if(!result.success) throw new Error(result.error);
+
+    if(!body.livenessCheck.result) throw new Error("Identidad no confirmada")
 
     // Confirmar existencia activa del ciudadano en el sistema
     if (!user) throw new Error('Usuario no encontrado');
@@ -98,6 +114,8 @@ async function vote(event, body)
             proof: 'prueba',
             checksum: 'verificacion'
         });
+        //Vote backup
+
         // Sumarizar el voto dentro de la colección de resultados cifrados sin exponer contenido
         for (const optionid of allOptionIds) 
         {
