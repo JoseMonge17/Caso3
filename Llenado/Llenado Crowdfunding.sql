@@ -482,6 +482,55 @@ VALUES
 ('Plan_Ejecucion_Agricultura.pdf', 'https://docs.example.com/p3/plan.pdf', 'u1v2w3x4y5', '{"timeline": "12 meses", "team": 8}', '2024-04-25', 5, 4),
 ('Contrato_Inversion_Agricultura.docx', 'https://docs.example.com/p3/contrato.docx', 'z6a7b8c9d0', '{"parties": 3, "clauses": 15}', NULL, 6, 6);
 
+-- Insert proposals for Project 1: Boulevard Cartago (Infrastructure)
+INSERT INTO [dbo].[vpv_proposal] (
+    [name], [enabled], [current_version], [description], 
+    [submission_date], [version], [origin_typeid], [userid], 
+    [statusid], [proposal_typeid], [entityid]
+)
+VALUES
+-- Initial proposal from government
+('Expansión Boulevard Cartago - Fase 1', 1, 1, 
+ 'Propuesta inicial para ampliación de 5.2km del boulevard principal de Cartago',
+ '2023-09-15', 1, 3, 101, 3, 1, 1),
+
+-- Revised proposal after feedback
+('Expansión Boulevard Cartago - Fase 1 (Revisada)', 1, 2,
+ 'Versión revisada con ajustes de presupuesto y cronograma',
+ '2023-10-05', 2, 3, 101, 3, 1, 1),
+
+-- Complementary proposal for pedestrian areas
+('Mejoras Peatonales Boulevard Cartago', 1, 1,
+ 'Adición de aceras amplias y cruces seguros al proyecto principal',
+ '2023-11-20', 1, 3, 102, 2, 1, 1),
+
+-- Proposals for Project 2: Planta Solar Guanacaste (Renewable Energy)
+('Planta Solar Guanacaste - 4.5MW', 1, 1,
+ 'Proyecto de generación solar para abastecer 6,500 hogares',
+ '2024-01-10', 1, 2, 201, 3, 2, 2),
+
+('Planta Solar Guanacaste - Ampliación', 1, 1,
+ 'Propuesta para ampliar capacidad a 6MW con baterías de almacenamiento',
+ '2024-02-15', 1, 2, 201, 2, 2, 2),
+
+('Programa Comunitario Planta Solar', 1, 1,
+ 'Iniciativas de capacitación y empleo local vinculadas al proyecto solar',
+ '2024-03-01', 1, 1, 205, 1, 2, 2),
+
+-- Proposals for Project 3: Plataforma Agricultura Digital (Tech Startup)
+('AgriTech CR - Plataforma Digital', 1, 1,
+ 'Solución tecnológica para optimización de cultivos para pequeños agricultores',
+ '2024-04-05', 1, 2, 301, 3, 3, 3),
+
+('AgriTech CR - Módulo Financiero', 1, 1,
+ 'Complemento para gestión de microcréditos agrícolas',
+ '2024-05-12', 1, 2, 301, 2, 3, 3),
+
+('AgriTech CR - Alianzas Estratégicas', 1, 1,
+ 'Propuesta de colaboración con cooperativas agrícolas',
+ '2024-06-18', 1, 2, 302, 1, 3, 3);
+
+
 
 
 
