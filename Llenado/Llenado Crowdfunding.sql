@@ -364,3 +364,16 @@ INSERT INTO cf_investment_agreements (
 (2, 3, 12.00, 5.00, GETDATE(),
  (SELECT statusid FROM cf_status_types WHERE name = 'Activo'), GETDATE(),
  CONVERT(VARBINARY(255), NEWID()));
+
+
+/*
+
+------------------------------------- PROPOSALS PARA 3 PROYECTOS ------------------------------------------------------
+
+*/
+
+
+
+
+
+
