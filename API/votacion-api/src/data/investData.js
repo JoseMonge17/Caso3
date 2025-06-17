@@ -1,7 +1,8 @@
-const { executeSP } = require('../db/config');
+const { executeSP, sql } = require('../db/config');
 
 async function ejecutarInversionSP(params) {
-  return executeSP('SP_CF_ProcesarInversion', {
+  return executeSP('SP_CF_ProcesarInversion', 
+  {
     proposalid: params.proposalid,
     userid: params.userid,
     monto: params.monto,
@@ -9,6 +10,15 @@ async function ejecutarInversionSP(params) {
     numeroreferencia: params.numeroreferencia,  
     token: params.token,
     metodoPagoId: params.metodoPagoId || 1,           
+  },
+  {
+    proposalid: sql.Int,
+    userid: sql.Int,
+    monto: sql.Float,
+    codigoPago: sql.NVarChar(100),
+    numeroreferencia: sql.NVarChar(100),
+    token: sql.NVarChar(200),
+    metodoPagoId: sql.Int
   });
 }
 

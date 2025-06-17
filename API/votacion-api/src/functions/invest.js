@@ -18,7 +18,7 @@ module.exports.handler = async (event) => {
       statusCode: 500,
       body: JSON.stringify({ 
         error: 'Error en inversión', 
-        detalles: err.message 
+        detalles: err.message
       })
     };
   }
