@@ -223,6 +223,89 @@ async function getProposal(sessionid)
     };
 }
 
+async function getSession(proposalid) 
+{
+    const vote = await CfProposalVote.findOne({
+        where: 
+        {
+            proposalid,
+            result: false
+        }
+    });
+
+    if (!vote) return null;
+
+    const session = await VoteSession.findByPk(vote.sessionid);
+    if (!session) return null;
+
+    return session;
+}
+
+async function createSession({startDate, endDate, voteTypeid, sessionStatusid, visibilityid}, proposalid, transaction) 
+{
+    const randomString = crypto.randomBytes(16).toString('hex');
+
+    const public_key = Buffer.from(randomString, 'utf8');
+
+    // Crear sesión de votos
+    const session = await VoteSession.create({
+        startDate,
+        endDate,
+        public_key,
+        sessionStatusid,
+        voteTypeid,
+        visibilityid
+    }, { transaction });
+
+    await CfProposalVote.create(
+        {
+            date: new Date(),
+            result: 0,
+            sessionid: session.sessionid,
+            proposalid
+        }, { transaction }
+    );
+
+    return session
+}
+
+async function insertQuestions(sessionid, questions, transaction) 
+{
+    const now = new Date();
+
+    for (const q of questions) 
+        {
+        // Insertar pregunta
+        const createdQuestion = await VoteQuestion.create({
+            description: q.description,
+            required: !!q.required,
+            max_answers: q.max_answers,
+            createDate: now,
+            updateDate: null,
+            question_typeid: q.question_typeid,
+            sessionid
+        }, { transaction });
+
+        // Insertar opciones
+        for (const opt of q.options) 
+        {
+            const raw = `${opt.description}-${opt.value}-${opt.order}`;
+            const checksum = crypto.createHash('sha256').update(raw).digest();
+
+            await VoteOption.create({
+                description: opt.description,
+                value: opt.value,
+                url: opt.url,
+                order: opt.order,
+                checksum: checksum,
+                createDate: now,
+                updateDate: null,
+                questionid: createdQuestion.questionid
+            }, { transaction });
+        }
+    }
+}
+
 module.exports = 
 {
     getVotingRulesForSession,
@@ -236,6 +319,9 @@ module.exports =
     getLastFiveVotes,
     getQuestionsAndOptions,
     insertLog,
-    getProposal
+    getProposal,
+    getSession,
+    createSession,
+    insertQuestions
 };
 
