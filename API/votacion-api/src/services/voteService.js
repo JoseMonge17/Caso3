@@ -1,5 +1,5 @@
 const { getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal } = require('../data/voteData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal, getSession, createSession, insertQuestions } = require('../data/voteData');
 const { sequelize } = require('../db/sequelize');
 const { verifyMfaCode } = require('../data/MfaVerification');
 const { saveLivenessData } = require('../data/livenessData');
@@ -117,7 +117,6 @@ async function vote(data, body)
 
     //Inicio Transaccion
     try {
-        
         const result = await sequelize.transaction(async (t) => {
             if (!eligibility) {
                 // Crear nuevo registro de elegibilidad
@@ -254,6 +253,53 @@ async function listVotes(data, body)
     return votosSecretos;
 }
 
+async function configureVoting(data, body)
+{
+    // Validar que el usuario tenga permisos para configurar esa propuesta
+    if(!data.permissions.find(p => p.code === "VOTE_MANAGE")) throw new Error("No tiene permisos para configurar esta votación");
+
+    //Validar si ya existe una session con el proposalid
+    let session = await getSession(body.proposalid);
+
+    if(session)
+    {
+        const now = new Date();
+        const startDate = new Date(session.startDate);
+        // No permitir actualizar esta configuración solo hasta que inicie el periodo de votación
+        if (now >= startDate) throw new Error("La sesión de votación ya ha iniciado. No se puede modificar.");
+    }
+    try {
+        const result = await sequelize.transaction(async (t) => 
+        {
+            if(session)
+            {
+                
+            }
+            else
+            {
+                // Guardar la configuración completa de la votación en estado preparado
+                // Establecer fechas de apertura y cierre de la votación
+                // Especificar el tipo de votación: única, múltiple, calificación, etc.
+                session = await createSession({
+                    startDate: body.session.startDate,
+                    endDate: body.session.endDate,
+                    voteTypeid: body.session.voteTypeid,
+                    sessionStatusid: 5,
+                    visibilityid: body.session.visibilityid,
+                }, body.proposalid, t);
+
+                // Cargar la(s) pregunta(s) asociada(s) a la propuesta y los posibles valores de respuesta
+                await insertQuestions(session.sessionid, body.session.questions, t)
+            }
+        });
+
+        return result;
+    } catch (error) {
+        console.error('Error en transacción de configurar voto: ', error);
+        return { success: false, error: error.message };
+    }
+}
+
 function decodeJson(buffer) 
 {
     try {
@@ -331,4 +377,4 @@ function verifyChecksumBallot(ballot) {
     }
 }
 
-module.exports = { vote, listVotes };
+module.exports = { vote, listVotes, configureVoting };

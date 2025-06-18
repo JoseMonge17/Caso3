@@ -42,6 +42,16 @@ functions:
           authorizer:
             name: authorizerFunction
             type: token
+  
+  configureVoting:
+    handler: src/functions/configureVoting.handler
+    events:
+      - http:
+          path: /api/configureVoting
+          method: post
+          authorizer:
+            name: authorizerFunction
+            type: token
 
   invest:
     handler: src/functions/invest.handler
