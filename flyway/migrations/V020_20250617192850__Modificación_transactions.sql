@@ -1,0 +1,2 @@
+ALTER TABLE vpv_transactions 
+ALTER COLUMN amount DECIMAL(12,2) NOT NULL;
