@@ -2,7 +2,8 @@ const { MFACode, AuthMethod } = require('../db/sequelize');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 
-async function verifyMfaCode(method_id, code) {
+async function verifyMfaCode(method_id, code)
+{
     const hashedCode = crypto.createHash('sha256').update(code).digest();
 
     const record = await MFACode.findOne({

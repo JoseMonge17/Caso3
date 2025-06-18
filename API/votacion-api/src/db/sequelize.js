@@ -395,8 +395,6 @@ const CfProposalVote = sequelize.define('cf_proposal_votes', {
     timestamps: false
 });
 
-
-
 const VpvProposal = sequelize.define('vpv_proposal', {
     proposalid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: { type: DataTypes.STRING(100), allowNull: false },
@@ -414,6 +412,16 @@ const VpvProposal = sequelize.define('vpv_proposal', {
     tableName: 'vpv_proposal',
     timestamps: false
 });
+
+const VpvDemographicData = sequelize.define('vpv_demographic_data', {
+    demographicid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    code: { type: DataTypes.STRING(10), allowNull: false },
+    description: { type: DataTypes.STRING(100), allowNull: false },
+    demographic_typeid: { type: DataTypes.TINYINT, allowNull: false }
+  }, {
+    tableName: 'vpv_demographic_data',
+    timestamps: false
+  });
 
 VpvProposal.associate = models => {
     VpvProposal.hasMany(models.cf_proposal_votes, { foreignKey: 'proposalid' });
@@ -504,5 +512,6 @@ module.exports = {
   VoteOption,
   VpvLog,
   CfProposalVote,
-  VpvProposal
+  VpvProposal,
+  VpvDemographicData
 };
