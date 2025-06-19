@@ -9,7 +9,9 @@ INSERT INTO cf_status_types (name, module) VALUES
 ('En Ejecución', 'crowdfunding'),
 ('Completado', 'crowdfunding'),
 ('Suspendido', 'crowdfunding'),
-('Cancelado', 'crowdfunding');
+('Cancelado', 'crowdfunding'),
+('Activo', 'crowdfunding'),
+('Pendiente', 'crowdfunding');
 
 -- Tipos de proyectos de crowdfunding
 INSERT INTO cf_project_types (name) VALUES 
@@ -53,7 +55,7 @@ INSERT INTO cf_sectors (name) VALUES
 -- Ejemplo completo para el proyecto mencionado
 INSERT INTO cf_projects (
   budget, equity_offered, sectorid, startdate, statusid, 
-  total_invested, proposalid, projecttypeid, min_funding_target, max_funding_target
+  total_invested, proposalid, projecttypeid, min_funding_target, max_funding_target, name
 ) VALUES (
   18500000.00, -- 18.5 millones de dólares
   10.00, -- 10% de equity
@@ -64,7 +66,8 @@ INSERT INTO cf_projects (
   1, -- Asumiendo propuesta ID 1
   (SELECT pjtypeid FROM cf_project_types WHERE name = 'Infraestructura Pública'),
   5000000.00, -- Mínimo 5 millones
-  15000000.00 -- Meta 15 millones
+  15000000.00, -- Meta 15 millones
+  'Expanción Boulevard Cartago'
 );
 
 /*
@@ -75,7 +78,7 @@ INSERT INTO cf_projects (
 
 INSERT INTO cf_projects (
   budget, equity_offered, sectorid, startdate, statusid, 
-  total_invested, proposalid, projecttypeid, min_funding_target, max_funding_target
+  total_invested, proposalid, projecttypeid, min_funding_target, max_funding_target, name
 ) VALUES (
   3200000.00, -- 3.2 millones
   25.00, -- 25% equity
@@ -83,10 +86,11 @@ INSERT INTO cf_projects (
   '2024-07-15',
   (SELECT statusid FROM cf_status_types WHERE name = 'En Recaudación'),
   1250000.00, -- Ya recaudó 1.25 millones
-  2,
+  4,
   (SELECT pjtypeid FROM cf_project_types WHERE name = 'Energías Renovables'),
   2000000.00, -- Mínimo 2 millones
-  3000000.00 -- Meta 3 millones
+  3000000.00, -- Meta 3 millones
+  'Planta Solar en Guanacaste'
 );
 
 /*
@@ -97,19 +101,27 @@ INSERT INTO cf_projects (
 
 INSERT INTO cf_projects (
   budget, equity_offered, sectorid, startdate, statusid, 
-  total_invested, proposalid, projecttypeid, min_funding_target, max_funding_target
+  total_invested, proposalid, projecttypeid, min_funding_target, max_funding_target, name
 ) VALUES (
   500000.00, -- 500 mil dólares
   30.00, -- 30% equity
   (SELECT sectorid FROM cf_sectors WHERE name = 'Tecnología e Innovación'),
   '2024-05-20',
-  (SELECT statusid FROM cf_status_types WHERE name = 'Financiado'),
+  (SELECT statusid FROM cf_status_types WHERE name = 'En Ejecución'),
   500000.00, -- Completamente financiado
-  3,
+  7,
   (SELECT pjtypeid FROM cf_project_types WHERE name = 'Innovación Tecnológica'),
   300000.00, -- Mínimo 300 mil
-  500000.00 -- Meta 500 mil
+  500000.00, -- Meta 500 mil
+  'Plataforma de Agricultura Digital'
 );
+
+-- Insertar fondos para los proyectos
+INSERT INTO cf_project_funds (projectid, total_funds, available_funds, distributed_funds, last_updated)
+VALUES
+(1, 0.00, 0.00, 0.00, GETDATE()),              -- Boulevard Cartago (sin financiar)
+(2, 1250000.00, 00.00, 0.00, GETDATE()),  -- Planta Solar (parcialmente financiado)
+(3, 500000.00, 00.00, 0.00, GETDATE());    -- Plataforma Agricultura Digital (totalmente financiado)
 
 /******************************************/
 -- Unidades de medida para los KPIs
@@ -344,7 +356,7 @@ INSERT INTO cf_movement_types (name) VALUES
 Insertar Acuerdos de Inversión (cf_investment_agreements)
 */
 -- Para el proyecto 1 (Boulevard Cartago):
-
+/*
 -- Acuerdo para inversión en Boulevard Cartago
 INSERT INTO cf_investment_agreements (
     investmentid, agreement_type, expected_returns, equity_porcentage,
@@ -364,171 +376,201 @@ INSERT INTO cf_investment_agreements (
 (2, 3, 12.00, 5.00, GETDATE(),
  (SELECT statusid FROM cf_status_types WHERE name = 'Activo'), GETDATE(),
  CONVERT(VARBINARY(255), NEWID()));
-
-/*
-
-------------------------------------- PROPOSALS PARA 3 PROYECTOS ------------------------------------------------------
-
 */
+ 
+ -- estado de reportes 
 
--- Tabla vpv_proposal_type (Tipos de Propuesta)
-INSERT INTO [dbo].[vpv_proposal_type] ([name], [description], [enabled]) 
-VALUES 
-('Infraestructura Pública', 'Proyectos de desarrollo de infraestructura urbana', 1),
-('Energía Renovable', 'Proyectos relacionados con energías limpias', 1),
-('Innovación Tecnológica', 'Soluciones tecnológicas innovadoras', 1),
-('Desarrollo Social', 'Iniciativas para mejorar condiciones sociales', 1),
-('Educación', 'Proyectos educativos y formativos', 1),
-('Salud Comunitaria', 'Iniciativas para mejorar servicios de salud', 1),
-('Cultura y Arte', 'Proyectos culturales y artísticos', 1),
-('Medio Ambiente', 'Iniciativas de conservación ambiental', 1),
-('Desarrollo Económico', 'Proyectos para impulsar la economía local', 1),
-('Turismo Sostenible', 'Iniciativas turísticas con enfoque sostenible', 1);
+INSERT INTO cf_report_types (name)
+  VALUES ('Ganancias');
 
--- Tabla vpv_proposal_status (Estados de Propuesta)
-INSERT INTO [dbo].[vpv_proposal_status] ([name], [description], [enabled]) 
-VALUES 
-('Borrador', 'Propuesta en fase de elaboración', 1),
-('En Revisión', 'Propuesta enviada para evaluación', 1),
-('Aprobada', 'Propuesta aprobada para financiamiento', 1),
-('Rechazada', 'Propuesta no aprobada', 1),
-('En Modificación', 'Propuesta requiere ajustes', 1),
-('Pendiente Documentación', 'Faltan documentos para completar evaluación', 1),
-('Archivada', 'Propuesta archivada sin procesamiento', 1),
-('En Financiamiento', 'Propuesta en búsqueda de fondos', 1),
-('Financiada', 'Propuesta con financiamiento completo', 1),
-('Cancelada', 'Propuesta cancelada por el proponente', 1);
+INSERT INTO cf_financial_reports (
+  period,
+  reporttypeid,
+  document_hash,
+  submission_date,
+  approved,
+  projectid,
+  documentid,
+  uploaded_by
+)
+VALUES (
+  '2025-Q2',          -- Periodo
+  1,                  -- reporttypeid para 'Ganancias'
+  CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'reporte_pdf')), 
+  GETDATE(),          -- Fecha de envío
+  1,                  -- Aprobado
+  1,                -- ID del proyecto en estado "ejecutando"
+  NULL,                 -- Documento cargado
+  2                   -- Usuario que subió el archivo
+);
 
--- Insertar los tipos de origen para propuestas
-INSERT INTO [dbo].[vpv_origin_type] ([name], [description], [enabled])
-VALUES
-('Ciudadano', 'Propuesta originada por un ciudadano individual o grupo de ciudadanos', 1),
-('Entidad', 'Propuesta presentada por una organización, asociación o entidad privada', 1),
-('Gobierno', 'Propuesta generada por una institución gubernamental o entidad pública', 1);
-
--- Insert validation types
-INSERT INTO [vpv_validation_types] ([name], [description], [enabled])
-VALUES
-('Validación Automática', 'Validación realizada por sistema automatizado', 1),
-('Revisión Técnica', 'Revisión por equipo técnico especializado', 1),
-('Aprobación Legal', 'Revisión y aprobación por departamento legal', 1),
-('Verificación Financiera', 'Análisis de viabilidad financiera', 1);
-
--- Insert section types
-INSERT INTO [vpv_section_type] ([name], [description], [enabled])
-VALUES
-('Encabezado', 'Sección inicial del documento', 1),
-('Cuerpo Principal', 'Contenido principal del documento', 1),
-('Anexos', 'Documentos adjuntos o complementarios', 1),
-('Firmas', 'Sección para firmas y aprobaciones', 1),
-('Metadatos', 'Información técnica sobre el documento', 1);
-
--- Insert document types
-INSERT INTO [vpv_document_type] ([name], [description], [enabled])
-VALUES
-('Estudio de Factibilidad', 'Documento técnico que analiza la viabilidad del proyecto', 1),
-('Plan Financiero', 'Presupuesto y proyecciones económicas del proyecto', 1),
-('Permisos Legales', 'Documentación de permisos y autorizaciones requeridas', 1),
-('Plan de Ejecución', 'Cronograma y metodología de implementación', 1),
-('Impacto Ambiental', 'Evaluación de impacto ambiental del proyecto', 1),
-('Contrato de Inversión', 'Acuerdos con los inversionistas', 1);
-
--- Insert validation workflows
-INSERT INTO [vpv_validation_workflow] ([workflowid], [workflow_name], [description], [parameter], [schedule_interval], [url], [enabled])
-VALUES
-(1, 'Flujo Básico', 'Validación estándar para documentos simples', '{"max_pages": 50, "allowed_formats": ["pdf", "docx"]}', '7d', '/api/validation/basic', 1),
-(2, 'Flujo Financiero', 'Validación especializada para documentos financieros', '{"requires_signatures": true, "audit_trail": true}', '14d', '/api/validation/financial', 1),
-(3, 'Flujo Legal', 'Validación rigurosa para documentos legales', '{"legal_review": true, "notarization": false}', '30d', '/api/validation/legal', 1);
-
--- Associate document types with workflows
-INSERT INTO [vpv_document_workflows] ([workflow_order], [creation_date], [documentid], [workflowid], [enabled])
-VALUES
-(1, GETDATE(), 1, 1, 1),
-(1, GETDATE(), 2, 2, 1),
-(1, GETDATE(), 3, 3, 1),
-(2, GETDATE(), 3, 1, 1),
-(1, GETDATE(), 4, 1, 1),
-(1, GETDATE(), 5, 1, 1),
-(1, GETDATE(), 6, 3, 1);
-
--- Create validation requests
-INSERT INTO [vpv_validation_request] ([creation_date], [finish_date], [global_result], [userid], [validation_typeid])
-VALUES
-('2024-01-15', '2024-02-10', 'Aprobado con observaciones menores', 101, 2),
-('2024-01-20', '2024-02-05', 'Aprobado', 102, 4),
-('2024-03-01', '2024-03-25', 'Aprobado', 103, 2),
-('2024-03-05', '2024-03-30', 'Rechazado - Requiere revisión', 104, 4),
-('2024-04-10', '2024-04-28', 'Aprobado', 105, 2),
-('2024-04-12', NULL, 'En proceso', 106, 4);
-
--- Insert document sections
-INSERT INTO [vpv_document_sections] ([required], [order_index], [rules], [section_typeid], [document_typeid], [parent_sectionid])
-VALUES
-(1, 1, '{"min_length": 500, "max_length": 5000}', 1, 1, NULL),
-(1, 2, '{"required_fields": ["objetivos", "metodologia"]}', 2, 1, 1),
-(0, 3, '{"max_attachments": 5}', 3, 1, NULL),
-(1, 1, '{"requires_charts": true}', 1, 2, NULL),
-(1, 2, '{"required_fields": ["presupuesto", "flujo_caja"]}', 2, 2, 4),
-(1, 1, '{"requires_official_seal": true}', 1, 3, NULL),
-(1, 2, '{"required_signatures": 2}', 4, 3, NULL);
-
--- Insert digital documents
-INSERT INTO [vpv_digital_documents] ([name], [url], [hash], [metadata], [validation_date], [requestid], [document_typeid])
-VALUES
-('Estudio_Factibilidad_Boulevard.pdf', 'https://docs.example.com/p1/estudio.pdf', 'a1b2c3d4e5', '{"pages": 45, "author": "Ing. Carlos Rojas"}', '2024-02-05', 1, 1),
-('Presupuesto_Boulevard.xlsx', 'https://docs.example.com/p1/presupuesto.xlsx', 'f6g7h8i9j0', '{"sheets": 3, "formulas_verified": true}', '2024-02-08', 2, 2),
-('Permisos_Ambientales_Planta.pdf', 'https://docs.example.com/p2/permisos.pdf', 'k1l2m3n4o5', '{"expiration": "2026-12-31", "entity": "MINAE"}', '2024-03-20', 3, 3),
-('Modelo_Financiero_Planta.xlsx', 'https://docs.example.com/p2/modelo.xlsx', 'p6q7r8s9t0', '{"scenarios": 5, "version": 2.1}', NULL, 4, 2),
-('Plan_Ejecucion_Agricultura.pdf', 'https://docs.example.com/p3/plan.pdf', 'u1v2w3x4y5', '{"timeline": "12 meses", "team": 8}', '2024-04-25', 5, 4),
-('Contrato_Inversion_Agricultura.docx', 'https://docs.example.com/p3/contrato.docx', 'z6a7b8c9d0', '{"parties": 3, "clauses": 15}', NULL, 6, 6);
-
--- Insert proposals for Project 1: Boulevard Cartago (Infrastructure)
-INSERT INTO [dbo].[vpv_proposal] (
-    [name], [enabled], [current_version], [description], 
-    [submission_date], [version], [origin_typeid], [userid], 
-    [statusid], [proposal_typeid], [entityid]
+-- Insertar inversiones para el proyecto 3 (5 inversionistas)
+INSERT INTO cf_investments (
+    amount, investmentdate, equity_obtained, statusid, 
+    investment_hash, projectid, paymentid, userid
 )
 VALUES
--- Initial proposal from government
-('Expansión Boulevard Cartago - Fase 1', 1, 1, 
- 'Propuesta inicial para ampliación de 5.2km del boulevard principal de Cartago',
- '2023-09-15', 1, 3, 101, 3, 1, 1),
+-- Inversión 1: $150,000 por 9% equity
+(150000.00, '2024-05-20', 9.00, 
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_1')), 3, NULL, 1),
 
--- Revised proposal after feedback
-('Expansión Boulevard Cartago - Fase 1 (Revisada)', 1, 2,
- 'Versión revisada con ajustes de presupuesto y cronograma',
- '2023-10-05', 2, 3, 101, 3, 1, 1),
+-- Inversión 2: $100,000 por 6% equity
+(100000.00, '2024-05-21', 6.00,
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_2')), 3, NULL, 2),
 
--- Complementary proposal for pedestrian areas
-('Mejoras Peatonales Boulevard Cartago', 1, 1,
- 'Adición de aceras amplias y cruces seguros al proyecto principal',
- '2023-11-20', 1, 3, 102, 2, 1, 1),
+-- Inversión 3: $75,000 por 4.5% equity
+(75000.00, '2024-05-22', 4.50,
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_3')), 3, NULL, 3),
 
--- Proposals for Project 2: Planta Solar Guanacaste (Renewable Energy)
-('Planta Solar Guanacaste - 4.5MW', 1, 1,
- 'Proyecto de generación solar para abastecer 6,500 hogares',
- '2024-01-10', 1, 2, 201, 3, 2, 2),
+-- Inversión 4: $100,000 por 6% equity
+(100000.00, '2024-05-23', 6.00,
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_4')), 3, NULL, 4),
 
-('Planta Solar Guanacaste - Ampliación', 1, 1,
- 'Propuesta para ampliar capacidad a 6MW con baterías de almacenamiento',
- '2024-02-15', 1, 2, 201, 2, 2, 2),
+-- Inversión 5: $75,000 por 4.5% equity
+(75000.00, '2024-05-24', 4.50,
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_5')), 3, NULL, 5);
 
-('Programa Comunitario Planta Solar', 1, 1,
- 'Iniciativas de capacitación y empleo local vinculadas al proyecto solar',
- '2024-03-01', 1, 1, 205, 1, 2, 2),
+-- Insertar acuerdos de inversión para el proyecto 3
+INSERT INTO cf_investment_agreements (
+    investmentid, agreement_type, expected_returns, equity_porcentage,
+    signed_date, statusid, last_modifies, terms_hash
+)
+VALUES
+(1, 1, 15.00, 9.00, '2024-05-20', 
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'), GETDATE(),
+ CONVERT(VARBINARY(255), NEWID())),
 
--- Proposals for Project 3: Plataforma Agricultura Digital (Tech Startup)
-('AgriTech CR - Plataforma Digital', 1, 1,
- 'Solución tecnológica para optimización de cultivos para pequeños agricultores',
- '2024-04-05', 1, 2, 301, 3, 3, 3),
+(2, 1, 15.00, 6.00, '2024-05-21',
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'), GETDATE(),
+ CONVERT(VARBINARY(255), NEWID())),
 
-('AgriTech CR - Módulo Financiero', 1, 1,
- 'Complemento para gestión de microcréditos agrícolas',
- '2024-05-12', 1, 2, 301, 2, 3, 3),
+(3, 1, 15.00, 4.50, '2024-05-22',
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'), GETDATE(),
+ CONVERT(VARBINARY(255), NEWID())),
 
-('AgriTech CR - Alianzas Estratégicas', 1, 1,
- 'Propuesta de colaboración con cooperativas agrícolas',
- '2024-06-18', 1, 2, 302, 1, 3, 3);
+(4, 1, 15.00, 6.00, '2024-05-23',
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'), GETDATE(),
+ CONVERT(VARBINARY(255), NEWID())),
+
+(5, 1, 15.00, 4.50, '2024-05-24',
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'), GETDATE(),
+ CONVERT(VARBINARY(255), NEWID()));
+
+-- Insertar estructuras de comisión para grupos asociados al proyecto 3
+INSERT INTO cf_fee_type (name) VALUES 
+('Porcentaje sobre ganancias'),
+('Monto fijo por distribución'),
+('Porcentaje sobre capital');
+
+--          GRUPO DE FEE STRUCTURE ----------------
+INSERT INTO vpv_group_type (name)
+    VALUES ('Aceleradora'),('Incubadora'),('Grupo Inversor');
+
+INSERT INTO vpv_groups (name, description, grouptypeid, entityid)
+VALUES (
+    'Aceleradora TechCR',
+    'Aceleradora de proyectos tecnológicos',
+    1,
+    5
+);
+
+-- Estructuras de comisión para el grupo
+INSERT INTO cf_fee_structures (
+    value, fee_typeid, applicable_to, effective_date, end_date, groupid
+)
+VALUES
+(5.00, 1, 'Ganancias netas', '2024-01-01', NULL, 1), -- 5% de ganancias
+(1000.00, 2, 'Por distribución', '2024-01-01', NULL, 1); -- $1000 fijo por distribución
+
+-- Configurar comisiones para el proyecto 3
+INSERT INTO cf_project_fee_configurations (
+    projectid, structureid, start_date, end_date, payment_scheduleid, statusid
+)
+VALUES
+(3, 1, '2024-05-20', NULL, NULL, 
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo')),
+(3, 2, '2024-05-20', NULL, NULL, 
+ (SELECT statusid FROM cf_status_types WHERE name = 'Activo'));
+
+
+-- Actualizar el proyecto 3 para simular que generó ganancias
+UPDATE cf_project_funds 
+SET available_funds = available_funds + 75000.00 -- $75,000 en ganancias
+WHERE projectid = 3;
+
+-- Crear reporte financiero aprobado para las ganancias
+INSERT INTO cf_financial_reports (
+    period, reporttypeid, document_hash, submission_date,
+    approved, projectid, uploaded_by
+)
+VALUES (
+    '2025-Q2', 
+    (SELECT reporttypeid FROM cf_report_types WHERE name = 'Ganancias'),
+    HASHBYTES('SHA2_256', 'reporte_ganancias_q2_proyecto3'),
+    GETDATE(),
+    1, -- Aprobado
+    3, -- Proyecto 3
+    2  -- Subido por admin
+);
+
+-- Insertar tipos de transacción necesarios
+INSERT INTO vpv_transactiontypes (name) VALUES 
+('Ingreso'),          -- Para registrar las ganancias del proyecto
+('Dividendo'),        -- Para la distribución de dividendos
+('Pago Comisión'),     -- Para pagos de comisiones
+('Inversión'),      -- Para inversiones iniciales
+('Desembolso');    -- Para desembolsos del proyecto
+
+-- Insertar subtipos de transacción
+INSERT INTO vpv_transactionsubtypes (name) VALUES
+('Ganancias Proyecto'),     -- Ingresos generados por el proyecto
+('Distribución Proyecto'), -- Distribución a inversionistas
+('Comisión de grupo'),     -- Pago de comisiones a grupos
+('Inversión en equity'),    -- Inversión en equity
+('Inversión deuda'),      -- Inversión como deuda
+('Retorno de capital'),       -- Retorno de capital
+('Gastos Operativos'),  -- Gastos operativos
+('Pago por hito');    -- Pago por hitos cumplidos
+
+-- Insertar monedas (con CRC como principal)
+INSERT INTO vpv_currencies (name, acronym, country, symbol) VALUES
+('Costa Rican Colón', 'CRC', 'Costa Rica', '₡'),
+('US Dollar', 'USD', 'United States', '$');
+
+
+-- 3. Crear transacción de ganancias (asociada al reporte)
+INSERT INTO vpv_transactions (
+    name, description, amount, referencenumber, 
+    transactiondate, officetime, checksum,
+    transactiontypeid, transactionsubtypeid, currencyid
+)
+VALUES (
+    'Ganancias Proyecto 3 - Q2 2024',
+    'Ganancias generadas por la plataforma agrícola',
+    75000.00, -- $75,000 en ganancias (ejemplo)
+    NEWID(),
+    GETDATE(),
+    GETDATE(),
+    HASHBYTES('SHA2_256', 'transac_ganancias_proy3_q2'),
+    (SELECT transactiontypeid FROM vpv_transactiontypes WHERE name = 'Ingreso'),
+    (SELECT transactionsubtypeid FROM vpv_transactionsubtypes WHERE name = 'Ganancias Proyecto'),
+    (SELECT currencyid FROM vpv_currencies WHERE acronym = 'USD')
+);
+
+INSERT INTO vpv_paymentstatus (name) VALUES 
+('Completed'),
+('Pending'),
+('Failed'),
+('Reversed'),
+('On Hold');
+
+
+
 
 
 
