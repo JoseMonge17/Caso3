@@ -1,4 +1,4 @@
-const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, VpvLog, CfProposalVote, VpvProposal } = require('../db/sequelize');
+const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, VpvLog, CfProposalVote, VpvProposal, VpvDemographicData } = require('../db/sequelize');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 
@@ -269,38 +269,181 @@ async function createSession({startDate, endDate, voteTypeid, sessionStatusid, v
     return session
 }
 
-async function insertQuestions(sessionid, questions, transaction) 
+async function configureQuestions(sessionid, questions, transaction) 
 {
     const now = new Date();
 
     for (const q of questions) 
+    {
+        let question = q
+        if(q.questionid)
         {
-        // Insertar pregunta
-        const createdQuestion = await VoteQuestion.create({
-            description: q.description,
-            required: !!q.required,
-            max_answers: q.max_answers,
-            createDate: now,
-            updateDate: null,
-            question_typeid: q.question_typeid,
-            sessionid
-        }, { transaction });
+            await VoteQuestion.update({
+                description: q.description,
+                required: !!q.required,
+                max_answers: q.max_answers,
+                updateDate: now,
+                question_typeid: q.question_typeid
+            }, 
+            { 
+                where:
+                { 
+                    sessionid,
+                    questionid: q.questionid
+                },
+                transaction
+            });
+        }
+        else
+        {
+            question = await VoteQuestion.create({
+                description: q.description,
+                required: !!q.required,
+                max_answers: q.max_answers,
+                createDate: now,
+                updateDate: null,
+                question_typeid: q.question_typeid,
+                sessionid
+            }, { transaction });
+        }
 
-        // Insertar opciones
         for (const opt of q.options) 
         {
             const raw = `${opt.description}-${opt.value}-${opt.order}`;
             const checksum = crypto.createHash('sha256').update(raw).digest();
 
-            await VoteOption.create({
-                description: opt.description,
-                value: opt.value,
-                url: opt.url,
-                order: opt.order,
-                checksum: checksum,
-                createDate: now,
-                updateDate: null,
-                questionid: createdQuestion.questionid
+            if(opt.optionid)
+            {
+                await VoteOption.update({
+                    description: opt.description,
+                    value: opt.value,
+                    url: opt.url,
+                    order: opt.order,
+                    checksum: checksum,
+                    updateDate: now
+                }, 
+                { 
+                    where:
+                    {
+                        questionid: question.questionid,
+                        optionid: opt.optionid
+                    },
+                    transaction
+                });
+            }
+            else
+            {
+                await VoteOption.create({
+                    description: opt.description,
+                    value: opt.value,
+                    url: opt.url,
+                    order: opt.order,
+                    checksum: checksum,
+                    createDate: now,
+                    updateDate: null,
+                    questionid: question.questionid
+                }, { transaction });
+            }
+        }
+    }
+}
+
+async function configureOptions(questionid, options, transaction)
+{
+
+}
+
+async function searchCriterias(criterias) 
+{
+    for (const criterio of criterias) 
+    {
+        const resultado = await VpvDemographicData.findOne({
+            where: {
+                code: criterio.code,
+                description: criterio.value
+            }
+        });
+
+        let demographicid = resultado.demographicid
+
+        criterio.demographicid = demographicid;
+
+        let criteria = await VoteCriteria.findOne(
+        {
+            where: { demographicid },
+            attributes: ['criteriaid']
+        });
+
+        if (!criteria) 
+        {
+            criteria = await VoteCriteria.create({
+                demographicid,
+                type: resultado.description,
+                datatype: 'text'
+            });
+        }
+
+        criterio.criteriaid = criteria.criteriaid;
+    }
+
+    return criterias;
+}
+
+async function updateSession(session, transaction) 
+{
+    const sessionid = session.sessionid
+    const updated = await VoteSession.update(
+    {
+        startDate: session.startDate,
+        endDate: session.endDate,
+        voteTypeid: session.voteTypeid,
+        sessionStatusid: session.sessionStatusid,
+        visibilityid: session.visibilityid
+    },
+    {
+        where: { sessionid },
+        transaction
+    }
+    );
+    return updated;
+}
+
+async function configureCriterias(sessionid, criterios, transaction) 
+{
+    for (const criterio of criterios) 
+    {
+        const existing = await VotingRule.findOne({
+            where: {
+                sessionid,
+                criteriaid: criterio.criteriaid
+            }, transaction
+        });
+        if(existing)
+        {
+            await VotingRule.update(
+            {
+                value: criterio.value,
+                weight: parseFloat(criterio.weigth),
+                enabled: true
+            },
+            {
+                where: 
+                {
+                    sessionid,
+                    criteriaid: criterio.criteriaid
+                },
+                transaction
+            });
+        }
+        else
+        {
+            await VotingRule.create(
+            {
+                value: criterio.value,
+                weight: parseFloat(criterio.weigth),
+                enabled: true,
+                sessionid,
+                criteriaid: criterio.criteriaid
             }, { transaction });
         }
     }
@@ -322,6 +465,9 @@ module.exports =
     getProposal,
     getSession,
     createSession,
-    insertQuestions
+    configureQuestions,
+    searchCriterias,
+    configureCriterias,
+    updateSession,
 };
 

@@ -1,5 +1,5 @@
 const { getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal, getSession, createSession, insertQuestions } = require('../data/voteData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal, getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession } = require('../data/voteData');
 const { sequelize } = require('../db/sequelize');
 const { verifyMfaCode } = require('../data/MfaVerification');
 const { saveLivenessData } = require('../data/livenessData');
@@ -116,9 +116,12 @@ async function vote(data, body)
     }
 
     //Inicio Transaccion
-    try {
-        const result = await sequelize.transaction(async (t) => {
-            if (!eligibility) {
+    try 
+    {
+        const result = await sequelize.transaction(async (t) => 
+        {
+            if (!eligibility) 
+            {
                 // Crear nuevo registro de elegibilidad
                 eligibility = await createEligibility(user.userid, sessionid, t);
             }
@@ -267,19 +270,27 @@ async function configureVoting(data, body)
         const startDate = new Date(session.startDate);
         // No permitir actualizar esta configuración solo hasta que inicie el periodo de votación
         if (now >= startDate) throw new Error("La sesión de votación ya ha iniciado. No se puede modificar.");
+
+        session.startDate = body.session.startDate;
+        session.endDate = body.session.endDate;
+        session.voteTypeid = body.session.voteTypeid;
+        session.sessionStatusid = 5;
+        session.visibilityid =  body.session.visibilityid;
     }
+
+    // Busqueda previa de registros de la tabla vote_criterias
+    const criterias = await searchCriterias(body.session.criterios)
+
+    //Inicio de la transaccion
     try {
         const result = await sequelize.transaction(async (t) => 
         {
-            if(session)
+            // Guardar la configuración completa de la votación en estado preparado
+            // Establecer fechas de apertura y cierre de la votación
+            // Especificar el tipo de votación: única, múltiple, calificación, etc.
+            if(session) await updateSession(session, t);
+            else 
             {
-                
-            }
-            else
-            {
-                // Guardar la configuración completa de la votación en estado preparado
-                // Establecer fechas de apertura y cierre de la votación
-                // Especificar el tipo de votación: única, múltiple, calificación, etc.
                 session = await createSession({
                     startDate: body.session.startDate,
                     endDate: body.session.endDate,
@@ -287,10 +298,13 @@ async function configureVoting(data, body)
                     sessionStatusid: 5,
                     visibilityid: body.session.visibilityid,
                 }, body.proposalid, t);
-
-                // Cargar la(s) pregunta(s) asociada(s) a la propuesta y los posibles valores de respuesta
-                await insertQuestions(session.sessionid, body.session.questions, t)
             }
+
+            // Definir población meta mediante filtros como edad, sexo, nacionalidad, ubicación, instituciones, etc.
+            await configureCriterias(session.sessionid, criterias, t)
+
+            // Cargar la(s) pregunta(s) asociada(s) a la propuesta y los posibles valores de respuesta
+            await configureQuestions(session.sessionid, body.session.questions, t)
         });
 
         return result;
