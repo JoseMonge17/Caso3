@@ -1,22 +1,37 @@
-const { ejecutarPropuestaSP } = require('../data/createUpdatePropData');
+const { crearOActualizarPropuesta } = require('../data/createUpdatePropData');
 
-async function procesarCreaUpPropuestaSP(body, user) {
-  // 1. Obtener userid del token
-  const userid = user.userid; 
+async function procesarCrearActualizarPropuestaSP(body, user) {
+  const userid = user.userid;
 
-  // 2. Parsear y validar input 
   const input = JSON.parse(body || '{}');
-  if (!input.proposalid) {
-    throw { statusCode: 400, message: 'Faltan proposalid' };
+
+  // Validaciones básicas
+  const camposFaltantes = [];
+  if (!input.name) camposFaltantes.push('name');
+  if (!input.description) camposFaltantes.push('description');
+  if (input.origin_typeid == null) camposFaltantes.push('origin_typeid');
+  if (input.proposal_typeid == null) camposFaltantes.push('proposal_typeid');
+  if (!Array.isArray(input.documents)) camposFaltantes.push('documents (debe ser array)');
+
+  if (camposFaltantes.length > 0) {
+    throw {
+      statusCode: 400,
+      message: `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`
+    };
   }
 
-  // 3. Inyectar userid en los parámetros
   const params = {
-    ...input,
-    userid // Añadimos el userid obtenido del token
+    name: input.name,
+    description: input.description,
+    origin_typeid: input.origin_typeid,
+    userid,
+    proposal_typeid: input.proposal_typeid,
+    entityid: input.entityid ?? null, // puede ser null
+    documents: input.documents,
+    version_comment: input.version_comment ?? null
   };
 
-  return await ejecutarPropuestaSP(params);
+  return await crearOActualizarPropuesta(params);
 }
 
-module.exports = { procesarCreaUpPropuestaSP };
+module.exports = { procesarCrearActualizarPropuestaSP };
