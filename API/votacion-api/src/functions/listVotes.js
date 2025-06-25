@@ -1,4 +1,4 @@
-const { listVotes } = require('../services/voteService');
+const { listVotes } = require('../services/listVotesService');
 
 module.exports.handler = async (event) => 
 {

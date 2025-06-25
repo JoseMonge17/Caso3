@@ -42,6 +42,16 @@ functions:
           authorizer:
             name: authorizerFunction
             type: token
+
+  comment:
+    handler: src/functions/comment.handler
+    events:
+      - http:
+          path: /api/comment
+          method: post
+          authorizer:
+            name: authorizerFunction
+            type: token
   
   configureVoting:
     handler: src/functions/configureVoting.handler

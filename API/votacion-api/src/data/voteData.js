@@ -146,7 +146,7 @@ async function getLastFiveVotes(userId)
         const ballots = await VoteBallot.findAll({
         where: {
             anonid: {
-            [Op.in]: anonIds
+                [Op.in]: anonIds
             }
         }
         });

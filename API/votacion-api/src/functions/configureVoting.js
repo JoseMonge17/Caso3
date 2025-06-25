@@ -1,4 +1,4 @@
-const { configureVoting } = require('../services/voteService');
+const { configureVoting } = require('../services/configureVotingService');
 
 module.exports.handler = async (event) => 
 {
