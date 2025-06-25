@@ -462,8 +462,16 @@ const VoteSessionIpPermission = sequelize.define('VoteSessionIpPermission', {
 const VoteSessionTimeRestriction = sequelize.define('VoteSessionTimeRestriction', {
     restrictionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
     sessionid: { type: DataTypes.INTEGER, allowNull: false },
-    start_time: { type: DataTypes.TIME, allowNull: false },
-    end_time: { type: DataTypes.TIME, allowNull: false },
+    start_time: { 
+      type: DataTypes.TIME, 
+      allowNull: false,
+      get() { return this.getDataValue('start_time') ? this.getDataValue('start_time').toISOString().substring(11, 19) : null; }
+    },
+    end_time: { 
+      type: DataTypes.TIME, 
+      allowNull: false,
+      get() { return this.getDataValue('end_time') ? this.getDataValue('end_time').toISOString().substring(11, 19) : null; }
+    },
     day_of_week: { type: DataTypes.INTEGER, allowNull: false },
   }, { tableName: 'vote_session_time_restrictions', timestamps: false });
 
@@ -490,6 +498,11 @@ AuthMethod.hasMany(MFACode, { foreignKey: 'method_id' });
 
 MFACode.belongsTo(AuthMethod, { foreignKey: 'method_id' });
 MFACode.belongsTo(MFADevice, { foreignKey: 'device_id' });
+
+VoteSessionIpPermission.belongsTo(sequelize.models.VpvWhitelist, {
+  foreignKey: 'whitelistid',
+  targetKey: 'whitelistid'
+});
 
 
 User.hasMany(VoteElegibility, {

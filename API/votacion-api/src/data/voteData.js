@@ -489,8 +489,8 @@ async function configureRules(sessionid, rules, transaction)
     }
 }
 
-const uploadRestrictedIPs = async (sessionid, restrictedIPs, transaction) => {
-
+async function uploadRestrictedIPs (sessionid, restrictedIPs, transaction)
+{
     for (const ip of restrictedIPs) 
     {
         let whitelist = await VpvWhitelist.findOne({
@@ -521,8 +521,8 @@ const uploadRestrictedIPs = async (sessionid, restrictedIPs, transaction) => {
     }
 };
 
-const uploadRestrictedTimes = async (sessionid, schedules, transaction) => {
-
+async function uploadRestrictedTimes (sessionid, schedules, transaction)
+{
     for (const schedule of schedules) 
     {
         let existingRestriction = await VoteSessionTimeRestriction.findOne({
@@ -554,6 +554,33 @@ const uploadRestrictedTimes = async (sessionid, schedules, transaction) => {
     }
 };
 
+async function getRestrictionTime(sessionid, day)
+{
+    return restriction = await VoteSessionTimeRestriction.findOne({
+        where: { sessionid, day_of_week: day }
+    });
+}
+
+async function getRestrictionIPs(sessionid)
+{
+    const whitelistRecords = await VoteSessionIpPermission.findAll({
+        where: { sessionid },
+        include: [{
+            model: VpvWhitelist,
+            required: true,
+        }],
+    });
+
+    const restrictions = whitelistRecords.map(record => ({
+      initial_IP: record.VpvWhitelist.initial_IP,
+      end_IP: record.VpvWhitelist.end_IP,
+      countryid: record.VpvWhitelist.countryid,
+      allowed: record.VpvWhitelist.allowed,
+    }));
+
+    return restrictions;
+}
+
 module.exports = 
 {
     getVotingRulesForSession,
@@ -576,6 +603,8 @@ module.exports =
     updateSession,
     configureRules,
     uploadRestrictedIPs,
-    uploadRestrictedTimes
+    uploadRestrictedTimes,
+    getRestrictionTime,
+    getRestrictionIPs
 };
 
