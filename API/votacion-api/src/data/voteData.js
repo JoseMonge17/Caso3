@@ -1,4 +1,4 @@
-const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, VpvLog, CfProposalVote, VpvProposal, VpvDemographicData } = require('../db/sequelize');
+const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, VpvLog, CfProposalVote, VpvProposal, VpvDemographicData, VoteRule, VoteAcceptanceRule, VoteSessionIpPermission, VpvWhitelist, VoteSessionTimeRestriction } = require('../db/sequelize');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 
@@ -348,11 +348,6 @@ async function configureQuestions(sessionid, questions, transaction)
     }
 }
 
-async function configureOptions(questionid, options, transaction)
-{
-
-}
-
 async function searchCriterias(criterias) 
 {
     for (const criterio of criterias) 
@@ -449,6 +444,116 @@ async function configureCriterias(sessionid, criterios, transaction)
     }
 }
 
+async function configureRules(sessionid, rules, transaction) 
+{
+    for (const rule of rules) 
+    {
+        const ruleType = await VoteRule.findOne({
+            where: { name: rule.rule }
+        });
+
+        const existing = await VoteAcceptanceRule.findOne({
+            where: {
+                sessionid,
+                rule_typeid: ruleType.ruleid
+            }, transaction
+        });
+        if(existing)
+        {
+            await VoteAcceptanceRule.update(
+            {
+                quantity: rule.value,
+                description: ruleType.name + " " + rule.value,
+                enabled: true
+            },
+            {
+                where: 
+                {
+                    sessionid,
+                    rule_typeid: ruleType.ruleid
+                },
+                transaction
+            });
+        }
+        else
+        {
+            await VoteAcceptanceRule.create(
+            {
+                quantity: rule.value,
+                description: ruleType.name + " " + rule.value,
+                enabled: true,
+                sessionid,
+                rule_typeid: ruleType.ruleid
+            }, { transaction });
+        }
+    }
+}
+
+const uploadRestrictedIPs = async (sessionid, restrictedIPs, transaction) => {
+
+    for (const ip of restrictedIPs) 
+    {
+        let whitelist = await VpvWhitelist.findOne({
+            where: { 
+                initial_IP: ip.initial_IP, 
+                end_IP: ip.end_IP, 
+                countryid: ip.countryid 
+            },
+            transaction
+        });
+
+        if (!whitelist) 
+        {
+            whitelist = await VpvWhitelist.create({
+                initial_IP: ip.initial_IP,
+                end_IP: ip.end_IP,
+                countryid: ip.countryid,
+                allowed: true
+            }, { transaction });
+        }
+
+        await VoteSessionIpPermission.create({
+            sessionid,
+            whitelistid: whitelist.whitelistid,
+            allowed: ip.allowed,
+            created_date: new Date(),
+        }, { transaction });
+    }
+};
+
+const uploadRestrictedTimes = async (sessionid, schedules, transaction) => {
+
+    for (const schedule of schedules) 
+    {
+        let existingRestriction = await VoteSessionTimeRestriction.findOne({
+            where: {
+                sessionid,
+                day_of_week: schedule.day_of_week
+            },
+            transaction
+        });
+
+        if (existingRestriction) 
+        {
+            existingRestriction.start_time = schedule.start_time;
+            existingRestriction.end_time = schedule.end_time;
+            existingRestriction.allowed = schedule.allowed;
+
+            await existingRestriction.save({ transaction });
+        } 
+        else 
+        {
+            await VoteSessionTimeRestriction.create({
+                sessionid,
+                start_time: schedule.start_time,
+                end_time: schedule.end_time,
+                day_of_week: schedule.day_of_week,
+                allowed: schedule.allowed
+            }, { transaction });
+        }
+    }
+};
+
 module.exports = 
 {
     getVotingRulesForSession,
@@ -469,5 +574,8 @@ module.exports =
     searchCriterias,
     configureCriterias,
     updateSession,
+    configureRules,
+    uploadRestrictedIPs,
+    uploadRestrictedTimes
 };
 

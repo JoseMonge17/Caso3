@@ -423,6 +423,50 @@ const VpvDemographicData = sequelize.define('vpv_demographic_data', {
     timestamps: false
   });
 
+
+const VoteRule = sequelize.define('vote_rules', {
+  ruleid: { type: DataTypes.TINYINT, primaryKey: true, autoIncrement: true },
+  name: { type: DataTypes.STRING(50), allowNull: false },
+  dataType: { type: DataTypes.STRING(50), allowNull: false }
+}, { tableName: 'vote_rules', timestamps: false });
+
+const VoteAcceptanceRule = sequelize.define('vote_acceptance_rules', {
+    acceptance_ruleid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    quantity: { type: DataTypes.INTEGER, allowNull: false },
+    description: { type: DataTypes.STRING(100), allowNull: false },
+    enabled: { type: DataTypes.BOOLEAN, allowNull: false },
+    sessionid: { type: DataTypes.INTEGER, allowNull: false },
+    rule_typeid: { type: DataTypes.TINYINT, allowNull: false }
+  }, { tableName: 'vote_acceptance_rules', timestamps: false });
+
+const VpvWhitelist = sequelize.define('VpvWhitelist', {
+    whitelistid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    initial_IP: { type: DataTypes.STRING, allowNull: false },
+    end_IP: { type: DataTypes.STRING, allowNull: false },
+    countryid: { type: DataTypes.INTEGER, allowNull: false },
+    allowed: { type: DataTypes.BOOLEAN, allowNull: false },
+  }, {
+    tableName: 'vpv_whitelist',
+    timestamps: false,
+  });
+
+const VoteSessionIpPermission = sequelize.define('VoteSessionIpPermission', {
+    permissionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    sessionid: { type: DataTypes.INTEGER, allowNull: false },
+    whitelistid: { type: DataTypes.INTEGER, allowNull: false },
+    allowed: { type: DataTypes.BOOLEAN, allowNull: false },
+    created_date: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.fn('getdate') }
+  }, { tableName: 'vote_session_ip_permissions', timestamps: false });
+
+
+const VoteSessionTimeRestriction = sequelize.define('VoteSessionTimeRestriction', {
+    restrictionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+    sessionid: { type: DataTypes.INTEGER, allowNull: false },
+    start_time: { type: DataTypes.TIME, allowNull: false },
+    end_time: { type: DataTypes.TIME, allowNull: false },
+    day_of_week: { type: DataTypes.INTEGER, allowNull: false },
+  }, { tableName: 'vote_session_time_restrictions', timestamps: false });
+
 VpvProposal.associate = models => {
     VpvProposal.hasMany(models.cf_proposal_votes, { foreignKey: 'proposalid' });
 };
@@ -513,5 +557,10 @@ module.exports = {
   VpvLog,
   CfProposalVote,
   VpvProposal,
-  VpvDemographicData
+  VpvDemographicData,
+  VoteRule,
+  VoteAcceptanceRule,
+  VpvWhitelist,
+  VoteSessionIpPermission,
+  VoteSessionTimeRestriction
 };

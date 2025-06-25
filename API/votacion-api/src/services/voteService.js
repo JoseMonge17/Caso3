@@ -1,5 +1,5 @@
 const { getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal, getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession } = require('../data/voteData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal, getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession, configureRules, uploadRestrictedIPs, uploadRestrictedTimes} = require('../data/voteData');
 const { sequelize } = require('../db/sequelize');
 const { verifyMfaCode } = require('../data/MfaVerification');
 const { saveLivenessData } = require('../data/livenessData');
@@ -281,6 +281,36 @@ async function configureVoting(data, body)
     // Busqueda previa de registros de la tabla vote_criterias
     const criterias = await searchCriterias(body.session.criterios)
 
+    if(body.session.restrictedIPs)
+    {
+        body.session.rules.push({
+            "rule": "Restricción IP",
+            "value": true
+        });
+    }
+    else
+    {
+        body.session.rules.push({
+            "rule": "Restricción IP",
+            "value": false
+        });
+    }
+
+    if(body.session.schedules)
+    {
+        body.session.rules.push({
+            "rule": "Restricción Horario",
+            "value": true
+        });
+    }
+    else
+    {
+        body.session.rules.push({
+            "rule": "Restricción Horario",
+            "value": false
+        });
+    }
+
     //Inicio de la transaccion
     try {
         const result = await sequelize.transaction(async (t) => 
@@ -305,6 +335,14 @@ async function configureVoting(data, body)
 
             // Cargar la(s) pregunta(s) asociada(s) a la propuesta y los posibles valores de respuesta
             await configureQuestions(session.sessionid, body.session.questions, t)
+
+            //Cargar las reglas automáticas
+            await configureRules(session.sessionid, body.session.rules, t)
+
+            await uploadRestrictedIPs(session.sessionid, body.session.restrictedIPs, t)
+
+            //To do, validaciones de si quiere que sea todo el dia y si no puede todo el dia
+            await uploadRestrictedTimes(session.sessionid, body.session.schedules, t)
         });
 
         return result;

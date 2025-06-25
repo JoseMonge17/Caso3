@@ -90,7 +90,7 @@ http://localhost:3000/dev/api/vote
         "storage_url": "https://example.com/uploads/selfie_front.jpg",
         "file_size": 245000,
         "uploaddate": "2025-06-15T14:00:05",
-        "hashvalue": "aabbccddeeff00112233445566778899",  // en backend convertís esto a Buffer
+        "hashvalue": "aabbccddeeff00112233445566778899",
         "encryption_key_id": "key1",
         "is_original": true,
         "biotypeid": 1,
