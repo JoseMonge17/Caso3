@@ -1,4 +1,4 @@
-const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, VpvLog, CfProposalVote, VpvProposal, VpvDemographicData, VoteRule, VoteAcceptanceRule, VoteSessionIpPermission, VpvWhitelist, VoteSessionTimeRestriction } = require('../db/sequelize');
+const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, VpvLog, CfProposalVote, VpvProposal, VpvDemographicData, VoteRule, VoteAcceptanceRule, VoteSessionIpPermission, VpvWhitelist, VoteSessionTimeRestriction, VpvCountry, VpvState, VpvCity, VpvAddress, VpvAddressAssignment, VpvImpactZone, VpvProposalImpactZone  } = require('../db/sequelize');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 
@@ -221,6 +221,11 @@ async function getProposal(sessionid)
         description: proposal.description,
         version: proposal.version
     };
+}
+
+async function getProposalById(proposalid) 
+{
+    return await VpvProposal.findByPk(proposalid);
 }
 
 async function getSession(proposalid) 
@@ -512,12 +517,38 @@ async function uploadRestrictedIPs (sessionid, restrictedIPs, transaction)
             }, { transaction });
         }
 
-        await VoteSessionIpPermission.create({
-            sessionid,
-            whitelistid: whitelist.whitelistid,
-            allowed: ip.allowed,
-            created_date: new Date(),
-        }, { transaction });
+        const restriction = await VoteSessionIpPermission.findOne({
+            where: { 
+                sessionid,
+                whitelistid: whitelist.whitelistid
+            },
+            transaction
+        });
+
+        if(restriction)
+        {
+            await VoteSessionIpPermission.update(
+            {
+                allowed: ip.allowed,
+            },
+            {
+                where: 
+                {
+                    sessionid,
+                    whitelistid: whitelist.whitelistid
+                },
+                transaction
+            });
+        }
+        else
+        {
+            await VoteSessionIpPermission.create({
+                sessionid,
+                whitelistid: whitelist.whitelistid,
+                allowed: ip.allowed,
+                created_date: new Date(),
+            }, { transaction });
+        }
     }
 };
 
@@ -561,24 +592,104 @@ async function getRestrictionTime(sessionid, day)
     });
 }
 
-async function getRestrictionIPs(sessionid)
+async function getRestrictionIPs(sessionid, countriesid)
 {
     const whitelistRecords = await VoteSessionIpPermission.findAll({
-        where: { sessionid },
+        where: { sessionid, allowed: false },
         include: [{
             model: VpvWhitelist,
             required: true,
+            where: {
+                countryid: {
+                    [Op.in]: countriesid
+                }
+            }
         }],
     });
 
     const restrictions = whitelistRecords.map(record => ({
-      initial_IP: record.VpvWhitelist.initial_IP,
-      end_IP: record.VpvWhitelist.end_IP,
-      countryid: record.VpvWhitelist.countryid,
-      allowed: record.VpvWhitelist.allowed,
+        initial_IP: record.VpvWhitelist.initial_IP,
+        end_IP: record.VpvWhitelist.end_IP,
+        countryid: record.VpvWhitelist.countryid,
+        allowed: record.VpvWhitelist.allowed,
     }));
 
     return restrictions;
+}
+
+async function getCountriesByUserId (userid)
+{
+      try {
+        const addressAssignments = await VpvAddressAssignment.findAll({
+        where: { userid },
+        include: [{
+            model: VpvAddress,
+            include: [{
+            model: VpvCity,
+            include: [{
+                model: VpvState,
+                include: [VpvCountry]
+            }]
+            }]
+        }]
+        });
+
+        const countryIds = [];
+        addressAssignments.forEach(assignment => {
+            const countryid = assignment.VpvAddress.VpvCity.VpvState.VpvCountry.countryid;
+            countryIds.push(countryid);
+        });
+
+        return countryIds;
+    } catch (error) {
+        throw new Error('Error al obtener los countryid asociados: ' + error.message);
+    }
+};
+
+async function uploadImpactZones(proposalid, impactZoneData, transaction) 
+{
+    for (const item of impactZoneData) 
+    {
+        let impactZone = await VpvImpactZone.findOne({
+            where: {
+                name: item.zone
+            },
+            transaction
+        });
+
+        if (!impactZone) 
+        {
+            impactZone = await VpvImpactZone.create({
+                name: item.zone,
+                zone_typeid: item.zone_typeid
+            }, { transaction });
+        }
+
+        const existing = await VpvProposalImpactZone.findOne({
+            where: {
+                proposalid,
+                zoneid: impactZone.zoneid
+            },
+            transaction
+        });
+
+        if (existing) 
+        {
+            await existing.update({
+                impact_levelid: item.impact_levelid,
+                description: item.description
+            }, { transaction });
+        } 
+        else 
+        {
+            await VpvProposalImpactZone.create({
+                proposalid,
+                zoneid: impactZone.zoneid,
+                impact_levelid: item.impact_levelid,
+                description: item.description
+            }, { transaction});
+        }
+    }
 }
 
 module.exports = 
@@ -595,6 +706,7 @@ module.exports =
     getQuestionsAndOptions,
     insertLog,
     getProposal,
+    getProposalById,
     getSession,
     createSession,
     configureQuestions,
@@ -605,6 +717,8 @@ module.exports =
     uploadRestrictedIPs,
     uploadRestrictedTimes,
     getRestrictionTime,
-    getRestrictionIPs
+    getRestrictionIPs,
+    getCountriesByUserId,
+    uploadImpactZones
 };
 

@@ -479,6 +479,74 @@ VpvProposal.associate = models => {
     VpvProposal.hasMany(models.cf_proposal_votes, { foreignKey: 'proposalid' });
 };
 
+const VpvCountry = sequelize.define('VpvCountry', {
+  countryid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+  name: { type: DataTypes.STRING(60), allowNull: false },
+  codeISO: { type: DataTypes.STRING(3), allowNull: false },
+  register_enable: { type: DataTypes.BOOLEAN, allowNull: false }
+}, { tableName: 'vpv_countries', timestamps: false });
+
+const VpvState = sequelize.define('VpvState', {
+  stateid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+  name: { type: DataTypes.STRING(60), allowNull: false },
+  countryid: { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: 'vpv_states', timestamps: false });
+
+
+const VpvCity = sequelize.define('VpvCity', {
+  cityid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+  name: { type: DataTypes.STRING(60), allowNull: false },
+  stateid: { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: 'vpv_cities', timestamps: false });
+
+const VpvAddress = sequelize.define('VpvAddress', {
+  addressid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+  line1: { type: DataTypes.STRING(200), allowNull: false },
+  line2: { type: DataTypes.STRING(200), allowNull: false },
+  zipcode: { type: DataTypes.STRING(9), allowNull: false },
+  location: { type: DataTypes.GEOGRAPHY, allowNull: false },
+  cityid: { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: 'vpv_address', timestamps: false });
+  
+const VpvAddressAssignment = sequelize.define('VpvAddressAssignment', {
+  asignationid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+  entitytype: { type: DataTypes.STRING(60), allowNull: false },
+  entityid: { type: DataTypes.INTEGER },
+  addressid: { type: DataTypes.INTEGER, allowNull: false },
+  userid: { type: DataTypes.INTEGER }
+}, { tableName: 'vpv_addressasignations', timestamps: false });
+
+const VpvImpactZone = sequelize.define('VpvImpactZone', {
+  zoneid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  name: { type: DataTypes.STRING(100), allowNull: false },
+  zone_typeid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_impact_zone',
+  timestamps: false
+});
+
+const VpvProposalImpactZone = sequelize.define('VpvProposalImpactZone', {
+  proposal_impactid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  proposalid: { type: DataTypes.INTEGER, allowNull: false },
+  zoneid: { type: DataTypes.INTEGER, allowNull: false },
+  impact_levelid: { type: DataTypes.INTEGER, allowNull: false },
+  description: { type: DataTypes.STRING(255), allowNull: true }
+}, {
+  tableName: 'vpv_proposal_impact_zones',
+  timestamps: false
+});
+
+VpvProposalImpactZone.belongsTo(VpvImpactZone, { foreignKey: 'zoneid' });
+VpvProposalImpactZone.belongsTo(VpvProposal, { foreignKey: 'proposalid' });
+
+VpvState.belongsTo(sequelize.models.VpvCountry, { foreignKey: 'countryid' });
+
+VpvCity.belongsTo(sequelize.models.VpvState, { foreignKey: 'stateid' });
+
+VpvAddress.belongsTo(sequelize.models.VpvCity, { foreignKey: 'cityid' });
+
+VpvAddressAssignment.belongsTo(sequelize.models.VpvAddress, { foreignKey: 'addressid' });
+
 VpvLivenessCheck.hasMany(VpvLivenessCheckMedia, { foreignKey: 'livenessid' });
 VpvBiometricMedia.hasMany(VpvLivenessCheckMedia, { foreignKey: 'biomediaid' });
 
@@ -575,5 +643,12 @@ module.exports = {
   VoteAcceptanceRule,
   VpvWhitelist,
   VoteSessionIpPermission,
-  VoteSessionTimeRestriction
+  VoteSessionTimeRestriction,
+  VpvCountry,
+  VpvState,
+  VpvCity,
+  VpvAddress,
+  VpvAddressAssignment,
+  VpvImpactZone,
+  VpvProposalImpactZone
 };

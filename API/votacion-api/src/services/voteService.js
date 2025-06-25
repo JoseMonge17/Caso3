@@ -1,11 +1,9 @@
 const { getDemographicData } = require('../data/authUserData');
-const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal, getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession, configureRules, uploadRestrictedIPs, uploadRestrictedTimes, getRestrictionTime, getRestrictionIPs} = require('../data/voteData');
+const { getSessionById, getVotingRulesForSession, hasUserVoted, registerEncryptedVote, createEligibility, updateDemographicStat, updateCommitment, backupVote, getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal, getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession, configureRules, uploadRestrictedIPs, uploadRestrictedTimes, getRestrictionTime, getRestrictionIPs, getCountriesByUserId, getProposalById, uploadImpactZones} = require('../data/voteData');
 const { sequelize } = require('../db/sequelize');
 const { verifyMfaCode } = require('../data/MfaVerification');
 const { saveLivenessData } = require('../data/livenessData');
 const crypto = require('crypto');
-
-
 
 async function vote(data, body) 
 {
@@ -58,10 +56,11 @@ async function vote(data, body)
 
     if (!session) throw new Error('Sesión de voto no encontrada');
 
-
     // Ver si la sesion de votos permite el IP del usuario
-    //To do: Filtrar por el pais del usuario
-    const restrictionIPs = await getRestrictionIPs(sessionid);
+    const countriesUser = await getCountriesByUserId(user.userid);
+
+    //Probar allowed
+    const restrictionIPs = await getRestrictionIPs(sessionid, countriesUser);
 
     const ip= ipToNumber(body.IP)
 
@@ -75,8 +74,6 @@ async function vote(data, body)
             if (!record.allowed) throw new Error('IP no permitida para votar');
         }
     }
-
-    console.log(restrictionIPs);
 
     const now = new Date();
     const day = now.getDay();
@@ -294,6 +291,9 @@ async function configureVoting(data, body)
     // Validar que el usuario tenga permisos para configurar esa propuesta
     if(!data.permissions.find(p => p.code === "VOTE_MANAGE")) throw new Error("No tiene permisos para configurar esta votación");
 
+    const proposal = getProposalById(body.proposalid);
+    if(!proposal) throw new Error("No existe la propuesta");
+
     //Validar si ya existe una session con el proposalid
     let session = await getSession(body.proposalid);
 
@@ -372,14 +372,16 @@ async function configureVoting(data, body)
             //Cargar las reglas automáticas
             await configureRules(session.sessionid, body.session.rules, t)
 
+            //To do: Probar actualizaciones
+            //Cargar restricciones de IP
             await uploadRestrictedIPs(session.sessionid, body.session.restrictedIPs, t)
 
-            //To do, validaciones de si quiere que sea todo el dia y si no puede todo el dia
+            //Cargar horarios
             await uploadRestrictedTimes(session.sessionid, body.session.schedules, t)
 
-            //To do zonas de impacto ????
-
-            //To do listas directas
+            //To do: Probar actualizaciones
+            //Cargar zonas de impacto de la propuesta
+            await uploadImpactZones(body.proposalid, body.impact_zone, t)
         });
 
         return result;

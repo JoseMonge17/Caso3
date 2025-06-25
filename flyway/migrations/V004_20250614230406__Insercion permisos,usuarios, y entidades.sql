@@ -2,10 +2,7 @@ ALTER TABLE vpv_permissions ALTER COLUMN permissioncode VARCHAR(20);
 
 -- 1. Primero, insertamos los estados de usuario
 INSERT INTO [dbo].[vpv_user_status] (statusid, name)
-VALUES 
-(1, 'Active'),
-(2, 'Inactive'),
-(3, 'Pending'),
+VALUES
 (4, 'Suspended'),
 (5, 'Deleted');
 GO
@@ -779,16 +776,3 @@ BEGIN
     FROM [dbo].[vpv_entity_audit_log];
 END;
 GO
-
--- Ejecutar todos los procedimientos en orden
-EXEC [dbo].[insert_vpv_users];
-EXEC [dbo].[insert_vpv_modules];
-EXEC [dbo].[insert_vpv_roles];
-EXEC [dbo].[insert_vpv_permissions];
-EXEC [dbo].[assign_vpv_permissions_to_roles];
-EXEC [dbo].[assign_vpv_roles_to_users];
-EXEC [dbo].[insert_vpv_entity_reference_data];
-EXEC [dbo].[insert_vpv_entities];
-EXEC [dbo].[insert_vpv_entity_representatives];
-EXEC [dbo].[insert_vpv_user_keys];
-EXEC [dbo].[insert_vpv_entity_audit_logs];
