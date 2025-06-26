@@ -24,8 +24,8 @@ functions:
             type: token
   
   invest:
-  handler: src/functions/invest.handler
-  events:
+    handler: src/functions/invest.handler
+    events:
     - http:
         path: /api/invest
         method: post
@@ -34,8 +34,8 @@ functions:
           type: token
 
   distributeDividends:
-  handler: src/functions/distributeDividends.handler
-  events:
+    handler: src/functions/distributeDividends.handler
+    events:
     - http:
         path: /api/distributeDividends
         method: post
