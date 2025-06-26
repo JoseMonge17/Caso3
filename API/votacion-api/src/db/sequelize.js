@@ -28,22 +28,27 @@ async function testConnection() {
 }
 testConnection();
 
-const ApiProvider = sequelize.define('api_providers', {
-  providerid: {
-    type: DataTypes.INTEGER,
-    primaryKey: true
-  },
-  brand_name: DataTypes.STRING,
-  legal_name: DataTypes.STRING,
-  legal_identification: DataTypes.STRING,
-  enabled: DataTypes.BOOLEAN
+//Tablas relacionadas con logs
+const VpvLog = sequelize.define('vpv_logs', {
+    logid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    description: { type: DataTypes.STRING(200), allowNull: false },
+    posttime: { type: DataTypes.DATE, allowNull: false },
+    computer: { type: DataTypes.STRING(100), allowNull: false },
+    trace: { type: DataTypes.TEXT, allowNull: false },
+    reference_id1: { type: DataTypes.BIGINT, allowNull: true },
+    reference_id2: { type: DataTypes.BIGINT, allowNull: true },
+    value1: { type: DataTypes.STRING(180), allowNull: true },
+    value2: { type: DataTypes.STRING(180), allowNull: true },
+    checksum: { type: DataTypes.STRING(45), allowNull: false },
+    log_typeid: { type: DataTypes.INTEGER, allowNull: false },
+    log_sourceid: { type: DataTypes.INTEGER, allowNull: false },
+    log_severityid: { type: DataTypes.INTEGER, allowNull: false }
 }, {
-  timestamps: false,
-  tableName: 'api_providers'
+    tableName: 'vpv_logs',
+    timestamps: false
 });
 
-
-
+//Tablas relacionadas con el usuario
 const UserStatus = sequelize.define('vpv_user_status', {
   statusid: { type: DataTypes.SMALLINT, primaryKey: true, autoIncrement: true },
   name:     { type: DataTypes.STRING(20), allowNull: false },
@@ -86,7 +91,199 @@ const UserDemographic = sequelize.define('vpv_user_demographics', {
   timestamps: false
 });
 
-// Criterio de votación
+const AuthSession = sequelize.define('AuthSession', {
+    sessionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    device_id: { type: DataTypes.INTEGER, allowNull: true },
+    start_date: { type: DataTypes.DATE, allowNull: false },
+    last_activity_date: { type: DataTypes.DATE, allowNull: false },
+    expiration_date: { type: DataTypes.DATE, allowNull: true },
+    session_token_hash: { type: DataTypes.BLOB, allowNull: false },
+    key_id: { type: DataTypes.INTEGER, allowNull: false },
+}, {
+    tableName: 'vpv_auth_sessions',
+    timestamps: false
+});
+
+const Role = sequelize.define('Role', {
+  roleid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  rolename: { type: DataTypes.STRING(30), allowNull: false },
+  description: { type: DataTypes.STRING(70), allowNull: false },
+  systemrole: { type: DataTypes.BOOLEAN, allowNull: false },
+  asignationdate: { type: DataTypes.DATE, allowNull: false }
+}, {
+  tableName: 'vpv_roles',
+  timestamps: false
+});
+
+const UserRole = sequelize.define('UserRole', {
+  user_rolid: { type: DataTypes.SMALLINT, primaryKey: true, autoIncrement: true },
+  enabled: { type: DataTypes.BOOLEAN, allowNull: false },
+  roleid: { type: DataTypes.INTEGER, allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_user_roles',
+  timestamps: false
+});
+
+const Permission = sequelize.define('Permission', {
+  permissionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  permissioncode: { type: DataTypes.STRING(10), allowNull: false },
+  description: { type: DataTypes.STRING(70), allowNull: false },
+  htmlObject: { type: DataTypes.STRING(100), allowNull: false },
+  moduleid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_permissions',
+  timestamps: false
+});
+
+const RolePermission = sequelize.define('RolePermission', {
+  userrolesid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  asignationdate: { type: DataTypes.DATE, allowNull: false },
+  checksum: { type: DataTypes.BLOB, allowNull: false },
+  enable: { type: DataTypes.BOOLEAN, allowNull: false },
+  deleted: { type: DataTypes.BOOLEAN, allowNull: false },
+  lastupdate: { type: DataTypes.DATE, allowNull: false },
+  roleid: { type: DataTypes.INTEGER, allowNull: false },
+  permissionid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_rolepermissions',
+  timestamps: false
+});
+
+const UserKey = sequelize.define('UserKey', {
+  key_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  algorithm: { type: DataTypes.STRING(50), allowNull: false },
+  creation_date: { type: DataTypes.DATE, allowNull: false },
+  key_status: { type: DataTypes.STRING(20), allowNull: false },
+  key_usage: { type: DataTypes.STRING(20), allowNull: false },
+  public_key: { type: DataTypes.BLOB, allowNull: false }
+}, {
+  tableName: 'vpv_user_keys',
+  timestamps: false
+});
+
+// MFA
+const AuthMethod = sequelize.define('vpv_auth_methods', {
+  method_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  device_id: { type: DataTypes.INTEGER, allowNull: true },
+  method_type: { type: DataTypes.STRING(50), allowNull: false },
+  identifier_hash: { type: DataTypes.STRING(255), allowNull: false },
+  registration_date: { type: DataTypes.DATE, allowNull: false },
+  last_used_date: { type: DataTypes.DATE, allowNull: true },
+  method_status: { type: DataTypes.STRING(20), allowNull: false },
+  priority: { type: DataTypes.INTEGER, allowNull: false },
+  is_primary: { type: DataTypes.BOOLEAN, allowNull: false }
+}, {
+  tableName: 'vpv_auth_methods',
+  timestamps: false
+});
+
+const MFADevice = sequelize.define('vpv_mfa_devices', {
+  deviceid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  device_name: { type: DataTypes.STRING(50), allowNull: false },
+  registration_date: { type: DataTypes.DATE, allowNull: false },
+  last_used_date: { type: DataTypes.DATE, allowNull: true },
+  device_status: { type: DataTypes.STRING(20), allowNull: false },
+  serial_hash: { type: DataTypes.BLOB, allowNull: false },
+  authentication_factor: { type: DataTypes.STRING(50), allowNull: false }
+}, {
+  tableName: 'vpv_mfa_devices',
+  timestamps: false
+});
+
+const MFACode = sequelize.define('vpv_mfa_codes', {
+  code_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  method_id: { type: DataTypes.INTEGER, allowNull: false },
+  device_id: { type: DataTypes.INTEGER, allowNull: true },
+  code_hash: { type: DataTypes.BLOB, allowNull: false },
+  generation_date: { type: DataTypes.DATE, allowNull: false },
+  expiration_date: { type: DataTypes.DATE, allowNull: false },
+  remaining_attempts: { type: DataTypes.INTEGER, allowNull: false },
+  code_status: { type: DataTypes.STRING(20), allowNull: false },
+  request_context: { type: DataTypes.STRING(255), allowNull: true },
+  request_ip_hash: { type: DataTypes.BLOB, allowNull: true },
+  request_device_hash: { type: DataTypes.BLOB, allowNull: true }
+}, {
+  tableName: 'vpv_mfa_codes',
+  timestamps: false
+});
+
+// Pruebas de vida
+const VpvBiometricMedia = sequelize.define('vpv_biometric_media', {
+  biomediaid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  filename: { type: DataTypes.STRING(100), allowNull: false },
+  storage_url: { type: DataTypes.STRING(255), allowNull: false },
+  file_size: { type: DataTypes.INTEGER, allowNull: false },
+  uploaddate: { type: DataTypes.DATE, allowNull: false },
+  hashvalue: { type: DataTypes.BLOB, allowNull: false },
+  encryption_key_id: { type: DataTypes.STRING(255), allowNull: false },
+  is_original: { type: DataTypes.BOOLEAN, allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  biotypeid: { type: DataTypes.INTEGER, allowNull: false },
+  mediatypeid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_biometric_media',
+  timestamps: false
+});
+
+const VpvLivenessCheck = sequelize.define('vpv_livenesschecks', {
+  livenessid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  check_type: { type: DataTypes.STRING(50), allowNull: false },
+  check_date: { type: DataTypes.DATE, allowNull: false },
+  result: { type: DataTypes.BOOLEAN, allowNull: false },
+  confidence_score: { type: DataTypes.DECIMAL(5, 2), allowNull: false },
+  algorithm_used: { type: DataTypes.STRING(100), allowNull: false },
+  device_info: { type: DataTypes.STRING(200), allowNull: false },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  requestid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_livenesschecks',
+  timestamps: false
+});
+
+const VpvLivenessCheckMedia = sequelize.define('vpv_livenesschecks_media', {
+  livemediaid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  livenessid: { type: DataTypes.INTEGER, allowNull: false },
+  biomediaid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+  tableName: 'vpv_livenesschecks_media',
+  timestamps: false
+});
+
+//Tablas relacionadas con propuestas
+const CfProposalVote = sequelize.define('cf_proposal_votes', {
+    proposal_voteid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    date: { type: DataTypes.DATE, allowNull: false },
+    result: { type: DataTypes.BOOLEAN, allowNull: false },
+    sessionid: { type: DataTypes.INTEGER, allowNull: false },
+    proposalid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+    tableName: 'cf_proposal_votes',
+    timestamps: false
+});
+
+const VpvProposal = sequelize.define('vpv_proposal', {
+    proposalid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    name: { type: DataTypes.STRING(100), allowNull: false },
+    enabled: { type: DataTypes.BOOLEAN, allowNull: false },
+    current_version: { type: DataTypes.INTEGER, allowNull: false },
+    description: { type: DataTypes.STRING(255), allowNull: false },
+    submission_date: { type: DataTypes.DATE, allowNull: false },
+    version: { type: DataTypes.INTEGER, allowNull: false },
+    origin_typeid: { type: DataTypes.INTEGER, allowNull: false },
+    userid: { type: DataTypes.INTEGER, allowNull: false },
+    statusid: { type: DataTypes.INTEGER, allowNull: false },
+    proposal_typeid: { type: DataTypes.INTEGER, allowNull: false },
+    entityid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+    tableName: 'vpv_proposal',
+    timestamps: false
+});
+
+// Tablas relacionadas con votos
 const VoteCriteria = sequelize.define('vote_criterias', {
   criteriaid: { type: DataTypes.TINYINT, primaryKey: true, autoIncrement: true },
   type: { type: DataTypes.STRING(50), allowNull: false },
@@ -170,170 +367,6 @@ const VoteCommitment = sequelize.define('vote_commitments', {
   timestamps: false
 });
 
-const AuthSession = sequelize.define('AuthSession', {
-    sessionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    device_id: { type: DataTypes.INTEGER, allowNull: true },
-    start_date: { type: DataTypes.DATE, allowNull: false },
-    last_activity_date: { type: DataTypes.DATE, allowNull: false },
-    expiration_date: { type: DataTypes.DATE, allowNull: true },
-    session_token_hash: { type: DataTypes.BLOB, allowNull: false },
-    key_id: { type: DataTypes.INTEGER, allowNull: false },
-  }, {
-    tableName: 'vpv_auth_sessions',
-    timestamps: false
-  });
-
-// vpv_roles
-const Role = sequelize.define('Role', {
-  roleid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  rolename: { type: DataTypes.STRING(30), allowNull: false },
-  description: { type: DataTypes.STRING(70), allowNull: false },
-  systemrole: { type: DataTypes.BOOLEAN, allowNull: false },
-  asignationdate: { type: DataTypes.DATE, allowNull: false }
-}, {
-  tableName: 'vpv_roles',
-  timestamps: false
-});
-
-// vpv_user_roles
-const UserRole = sequelize.define('UserRole', {
-  user_rolid: { type: DataTypes.SMALLINT, primaryKey: true, autoIncrement: true },
-  enabled: { type: DataTypes.BOOLEAN, allowNull: false },
-  roleid: { type: DataTypes.INTEGER, allowNull: false },
-  userid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-  tableName: 'vpv_user_roles',
-  timestamps: false
-});
-
-// vpv_permissions
-const Permission = sequelize.define('Permission', {
-  permissionid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  permissioncode: { type: DataTypes.STRING(10), allowNull: false },
-  description: { type: DataTypes.STRING(70), allowNull: false },
-  htmlObject: { type: DataTypes.STRING(100), allowNull: false },
-  moduleid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-  tableName: 'vpv_permissions',
-  timestamps: false
-});
-
-// vpv_rolepermissions
-const RolePermission = sequelize.define('RolePermission', {
-  userrolesid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  asignationdate: { type: DataTypes.DATE, allowNull: false },
-  checksum: { type: DataTypes.BLOB, allowNull: false },
-  enable: { type: DataTypes.BOOLEAN, allowNull: false },
-  deleted: { type: DataTypes.BOOLEAN, allowNull: false },
-  lastupdate: { type: DataTypes.DATE, allowNull: false },
-  roleid: { type: DataTypes.INTEGER, allowNull: false },
-  permissionid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-  tableName: 'vpv_rolepermissions',
-  timestamps: false
-});
-
-const UserKey = sequelize.define('UserKey', {
-  key_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  userid: { type: DataTypes.INTEGER, allowNull: false },
-  algorithm: { type: DataTypes.STRING(50), allowNull: false },
-  creation_date: { type: DataTypes.DATE, allowNull: false },
-  key_status: { type: DataTypes.STRING(20), allowNull: false },
-  key_usage: { type: DataTypes.STRING(20), allowNull: false },
-  public_key: { type: DataTypes.BLOB, allowNull: false }
-}, {
-  tableName: 'vpv_user_keys',
-  timestamps: false
-});
-
-const AuthMethod = sequelize.define('vpv_auth_methods', {
-  method_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  userid: { type: DataTypes.INTEGER, allowNull: false },
-  device_id: { type: DataTypes.INTEGER, allowNull: true },
-  method_type: { type: DataTypes.STRING(50), allowNull: false },
-  identifier_hash: { type: DataTypes.STRING(255), allowNull: false },
-  registration_date: { type: DataTypes.DATE, allowNull: false },
-  last_used_date: { type: DataTypes.DATE, allowNull: true },
-  method_status: { type: DataTypes.STRING(20), allowNull: false },
-  priority: { type: DataTypes.INTEGER, allowNull: false },
-  is_primary: { type: DataTypes.BOOLEAN, allowNull: false }
-}, {
-  tableName: 'vpv_auth_methods',
-  timestamps: false
-});
-
-const MFADevice = sequelize.define('vpv_mfa_devices', {
-  deviceid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  userid: { type: DataTypes.INTEGER, allowNull: false },
-  device_name: { type: DataTypes.STRING(50), allowNull: false },
-  registration_date: { type: DataTypes.DATE, allowNull: false },
-  last_used_date: { type: DataTypes.DATE, allowNull: true },
-  device_status: { type: DataTypes.STRING(20), allowNull: false },
-  serial_hash: { type: DataTypes.BLOB, allowNull: false },
-  authentication_factor: { type: DataTypes.STRING(50), allowNull: false }
-}, {
-  tableName: 'vpv_mfa_devices',
-  timestamps: false
-});
-
-const MFACode = sequelize.define('vpv_mfa_codes', {
-  code_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  method_id: { type: DataTypes.INTEGER, allowNull: false },
-  device_id: { type: DataTypes.INTEGER, allowNull: true },
-  code_hash: { type: DataTypes.BLOB, allowNull: false },
-  generation_date: { type: DataTypes.DATE, allowNull: false },
-  expiration_date: { type: DataTypes.DATE, allowNull: false },
-  remaining_attempts: { type: DataTypes.INTEGER, allowNull: false },
-  code_status: { type: DataTypes.STRING(20), allowNull: false },
-  request_context: { type: DataTypes.STRING(255), allowNull: true },
-  request_ip_hash: { type: DataTypes.BLOB, allowNull: true },
-  request_device_hash: { type: DataTypes.BLOB, allowNull: true }
-}, {
-  tableName: 'vpv_mfa_codes',
-  timestamps: false
-});
-
-const VpvBiometricMedia = sequelize.define('vpv_biometric_media', {
-  biomediaid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  filename: { type: DataTypes.STRING(100), allowNull: false },
-  storage_url: { type: DataTypes.STRING(255), allowNull: false },
-  file_size: { type: DataTypes.INTEGER, allowNull: false },
-  uploaddate: { type: DataTypes.DATE, allowNull: false },
-  hashvalue: { type: DataTypes.BLOB, allowNull: false },
-  encryption_key_id: { type: DataTypes.STRING(255), allowNull: false },
-  is_original: { type: DataTypes.BOOLEAN, allowNull: false },
-  userid: { type: DataTypes.INTEGER, allowNull: false },
-  biotypeid: { type: DataTypes.INTEGER, allowNull: false },
-  mediatypeid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-  tableName: 'vpv_biometric_media',
-  timestamps: false
-});
-
-const VpvLivenessCheck = sequelize.define('vpv_livenesschecks', {
-  livenessid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  check_type: { type: DataTypes.STRING(50), allowNull: false },
-  check_date: { type: DataTypes.DATE, allowNull: false },
-  result: { type: DataTypes.BOOLEAN, allowNull: false },
-  confidence_score: { type: DataTypes.DECIMAL(5, 2), allowNull: false },
-  algorithm_used: { type: DataTypes.STRING(100), allowNull: false },
-  device_info: { type: DataTypes.STRING(200), allowNull: false },
-  userid: { type: DataTypes.INTEGER, allowNull: false },
-  requestid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-  tableName: 'vpv_livenesschecks',
-  timestamps: false
-});
-
-const VpvLivenessCheckMedia = sequelize.define('vpv_livenesschecks_media', {
-  livemediaid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  livenessid: { type: DataTypes.INTEGER, allowNull: false },
-  biomediaid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-  tableName: 'vpv_livenesschecks_media',
-  timestamps: false
-});
-
 const VoteBackup = sequelize.define('vote_backup', {
   backupid: { type: DataTypes.TINYINT, primaryKey: true, autoIncrement: true },
   register: { type: DataTypes.TEXT, allowNull: false }
@@ -364,54 +397,6 @@ const VoteOption = sequelize.define('vote_options', {
     updateDate: { type: DataTypes.DATE },
     questionid: { type: DataTypes.INTEGER, allowNull: false }
 }, { tableName: 'vote_options', timestamps: false });
-
-const VpvLog = sequelize.define('vpv_logs', {
-    logid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    description: { type: DataTypes.STRING(200), allowNull: false },
-    posttime: { type: DataTypes.DATE, allowNull: false },
-    computer: { type: DataTypes.STRING(100), allowNull: false },
-    trace: { type: DataTypes.TEXT, allowNull: false },
-    reference_id1: { type: DataTypes.BIGINT, allowNull: true },
-    reference_id2: { type: DataTypes.BIGINT, allowNull: true },
-    value1: { type: DataTypes.STRING(180), allowNull: true },
-    value2: { type: DataTypes.STRING(180), allowNull: true },
-    checksum: { type: DataTypes.STRING(45), allowNull: false },
-    log_typeid: { type: DataTypes.INTEGER, allowNull: false },
-    log_sourceid: { type: DataTypes.INTEGER, allowNull: false },
-    log_severityid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-    tableName: 'vpv_logs',
-    timestamps: false
-});
-
-const CfProposalVote = sequelize.define('cf_proposal_votes', {
-    proposal_voteid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    date: { type: DataTypes.DATE, allowNull: false },
-    result: { type: DataTypes.BOOLEAN, allowNull: false },
-    sessionid: { type: DataTypes.INTEGER, allowNull: false },
-    proposalid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-    tableName: 'cf_proposal_votes',
-    timestamps: false
-});
-
-const VpvProposal = sequelize.define('vpv_proposal', {
-    proposalid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    name: { type: DataTypes.STRING(100), allowNull: false },
-    enabled: { type: DataTypes.BOOLEAN, allowNull: false },
-    current_version: { type: DataTypes.INTEGER, allowNull: false },
-    description: { type: DataTypes.STRING(255), allowNull: false },
-    submission_date: { type: DataTypes.DATE, allowNull: false },
-    version: { type: DataTypes.INTEGER, allowNull: false },
-    origin_typeid: { type: DataTypes.INTEGER, allowNull: false },
-    userid: { type: DataTypes.INTEGER, allowNull: false },
-    statusid: { type: DataTypes.INTEGER, allowNull: false },
-    proposal_typeid: { type: DataTypes.INTEGER, allowNull: false },
-    entityid: { type: DataTypes.INTEGER, allowNull: false }
-}, {
-    tableName: 'vpv_proposal',
-    timestamps: false
-});
 
 const VpvDemographicData = sequelize.define('vpv_demographic_data', {
     demographicid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -536,6 +521,8 @@ const VpvProposalImpactZone = sequelize.define('VpvProposalImpactZone', {
   timestamps: false
 });
 
+
+//Relaciones entre tablas
 VpvProposalImpactZone.belongsTo(VpvImpactZone, { foreignKey: 'zoneid' });
 VpvProposalImpactZone.belongsTo(VpvProposal, { foreignKey: 'proposalid' });
 

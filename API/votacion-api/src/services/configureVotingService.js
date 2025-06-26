@@ -1,13 +1,18 @@
-const { getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession, configureRules, uploadRestrictedIPs, uploadRestrictedTimes, getProposalById, uploadImpactZones} = require('../data/voteData');
+const { getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession, configureRules, uploadRestrictedIPs, uploadRestrictedTimes, getProposalById, uploadImpactZones, uploadDirectList, hasUserVoted} = require('../data/voteData');
+const { getIdUsers } = require('../data/authUserData');
 const { sequelize } = require('../db/sequelize');
 
 async function configureVoting(data, body)
 {
+    
+    const proposal = await getProposalById(body.proposalid);
+    if(!proposal) throw new Error("No existe la propuesta");
+
     // Validar que el usuario tenga permisos para configurar esa propuesta
     if(!data.permissions.find(p => p.code === "VOTE_MANAGE")) throw new Error("No tiene permisos para configurar esta votación");
 
-    const proposal = getProposalById(body.proposalid);
-    if(!proposal) throw new Error("No existe la propuesta");
+    // Busqueda previsa de los id de los usuarios de la lista directa
+    const listUsers = await getIdUsers(body.session.directList);
 
     //Validar si ya existe una session con el proposalid
     let session = await getSession(body.proposalid);
@@ -24,7 +29,15 @@ async function configureVoting(data, body)
         session.voteTypeid = body.session.voteTypeid;
         session.sessionStatusid = 5;
         session.visibilityid =  body.session.visibilityid;
+
+        listUsers = listUsers.filter(async (userid) => {
+            const record = await hasUserVoted(userid, session.sessionid);
+            return !record;
+        });
     }
+
+    
+    console.log(listUsers);
 
     // Busqueda previa de registros de la tabla vote_criterias
     const criterias = await searchCriterias(body.session.criterios)
@@ -58,7 +71,6 @@ async function configureVoting(data, body)
             "value": false
         });
     }
-
     //Inicio de la transaccion
     try {
         const result = await sequelize.transaction(async (t) => 
@@ -82,24 +94,33 @@ async function configureVoting(data, body)
             await configureCriterias(session.sessionid, criterias, t)
 
             // Cargar la(s) pregunta(s) asociada(s) a la propuesta y los posibles valores de respuesta
-            await configureQuestions(session.sessionid, body.session.questions, t)
+            await configureQuestions(session.sessionid, body.session.questions, t);
 
             //Cargar las reglas automáticas
-            await configureRules(session.sessionid, body.session.rules, t)
+            await configureRules(session.sessionid, body.session.rules, t);
 
             //To do: Probar actualizaciones
             //Cargar restricciones de IP
-            await uploadRestrictedIPs(session.sessionid, body.session.restrictedIPs, t)
+            await uploadRestrictedIPs(session.sessionid, body.session.restrictedIPs, t);
 
             //Cargar horarios
-            await uploadRestrictedTimes(session.sessionid, body.session.schedules, t)
+            await uploadRestrictedTimes(session.sessionid, body.session.schedules, t);
 
+            console.log("Listas directas")
+            //Cargar listas directas
+            await uploadDirectList(session.sessionid, listUsers, t);
+
+            console.log("Zones")
             //To do: Probar actualizaciones
             //Cargar zonas de impacto de la propuesta
-            await uploadImpactZones(body.proposalid, body.impact_zone, t)
+            await uploadImpactZones(body.proposalid, body.impact_zone, t);
         });
-
-        return result;
+        
+        return {
+            success: true,
+            mensaje: "Configuracion aplicada correctamente a la sesion de votos para la propuesta ",
+            proposal
+        }
     } catch (error) {
         console.error('Error en transacción de configurar voto: ', error);
         return { success: false, error: error.message };

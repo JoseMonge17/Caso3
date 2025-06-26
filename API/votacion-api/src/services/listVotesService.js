@@ -1,4 +1,5 @@
-const { getLastFiveVotes, getQuestionsAndOptions, insertLog, getProposal} = require('../data/voteData');
+const { insertLog } = require('../data/logData');
+const { getLastFiveVotes, getQuestionsAndOptions, getProposal} = require('../data/voteData');
 const { verifyMfaCode } = require('../data/MfaVerification');
 const { saveLivenessData } = require('../data/livenessData');
 const crypto = require('crypto');
@@ -91,7 +92,13 @@ async function listVotes(data, body)
     }
     // Registrar esta operación como evento de consulta auditada
     await insertLog("Consulta auditada de últimas 5 votaciones realizada", body.livenessCheck.device_info, "Modulo votaciones / Mis ultimas 5 votaciones", user.userid, "userid", 1, 1, 1);
-
+    if(votosSecretos.length==0)
+    {
+        return {
+            success: true,
+            mensaje: "El usuario no ha realizado votaciones"
+        }
+    }
     return votosSecretos;
 }
 

@@ -1,4 +1,4 @@
-const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, VpvLog, CfProposalVote, VpvProposal, VpvDemographicData, VoteRule, VoteAcceptanceRule, VoteSessionIpPermission, VpvWhitelist, VoteSessionTimeRestriction, VpvCountry, VpvState, VpvCity, VpvAddress, VpvAddressAssignment, VpvImpactZone, VpvProposalImpactZone  } = require('../db/sequelize');
+const { VotingRule, VoteCriteria, VoteSession, VoteElegibility, VoteBallot, VoteDemographicStat, VoteCommitment, VoteBackup, VoteQuestion, VoteOption, CfProposalVote, VpvProposal, VpvDemographicData, VoteRule, VoteAcceptanceRule, VoteSessionIpPermission, VpvWhitelist, VoteSessionTimeRestriction, VpvCountry, VpvState, VpvCity, VpvAddress, VpvAddressAssignment, VpvImpactZone, VpvProposalImpactZone  } = require('../db/sequelize');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 
@@ -20,26 +20,36 @@ async function hasUserVoted(userid, sessionid)
     const record = await VoteElegibility.findOne({
         where: { userid, sessionid }
     });
-
     return record;
 }
 
+
 async function registerEncryptedVote({ sessionid, eligibility, encryptedVote, signature, proof, transaction, userid }) 
 {
+    // Convierte la firma de base64 a un Buffer (formato binario)
     const sigBuffer = Buffer.from(signature, 'base64');
+    // Convierte el voto a un Buffer, dependiendo de si el userid es nulo o no
+    // Si no es nulo, el voto se trata como un string codificado en 'utf-8'
+    // Si es nulo, se trata como base64
     const voteBuffer = userid ? Buffer.from(encryptedVote, 'utf-8') : Buffer.from(encryptedVote, 'base64');
+    // Convierte proof a un Buffer Si no existe, se asigna un Buffer vacío
     const proofBuffer = proof ? Buffer.from(proof, 'base64') : Buffer.alloc(0);
 
+    // Crea un hash SHA-256 para realizar el checksum de la información
     const hash = crypto.createHash('sha256');
+    // Agrega la información del voto
     hash.update(sigBuffer);
     hash.update(voteBuffer);
+    // Agrega una constante para verificar la integridad y asegurar la autenticidad
     hash.update(Buffer.from("VotoPuraVidaCheckSumAsegurado")); 
     hash.update(proofBuffer);
     hash.update(Buffer.from(eligibility.elegibilityid.toString()));
     hash.update(Buffer.from(sessionid.toString()));
 
+    // Genera el checksum final usando el hash
     const checksum = hash.digest();
 
+    //Registra el voto
     await VoteBallot.create({
         signature: sigBuffer,
         encryptedVote: voteBuffer,
@@ -50,6 +60,7 @@ async function registerEncryptedVote({ sessionid, eligibility, encryptedVote, si
         userid
     }, { transaction });
 
+    //Actualiza el registro, indicando que el usuario ya votó
     await VoteElegibility.update(
         { voted: true },
         { where: { elegibilityid: eligibility.elegibilityid }, transaction }
@@ -84,6 +95,7 @@ async function createEligibility(userid, sessionid, transaction)
         sessionid,
         userid
     }, {transaction});
+    
     return eligibility;
 }
 
@@ -175,39 +187,6 @@ async function getQuestionsAndOptions(questionIds)
     return { questions, options };
 }
 
-async function insertLog(description, computer, trace, userid, value1, log_typeid, log_sourceid, log_severityid) 
-{
-    try {
-        const hash = crypto.createHash('sha256');
-        hash.update(Buffer.from(description || ''));
-        hash.update(Buffer.from(trace || ''));
-        hash.update(Buffer.from(value1 || ''));
-        hash.update(Buffer.from(userid?.toString() || ''));
-        hash.update(Buffer.from(log_typeid.toString()));
-        hash.update(Buffer.from(log_sourceid.toString()));
-        hash.update(Buffer.from(log_severityid.toString()));
-        hash.update(Buffer.from('VotoPuraVidaCheckSumLog'));
-
-        const checksum = hash.digest();
-        
-        await VpvLog.create(
-        {
-            description,
-            posttime: new Date(),
-            computer,
-            trace,
-            reference_id1: userid,
-            value1,
-            checksum,
-            log_typeid,
-            log_sourceid,
-            log_severityid
-        });
-    } catch (error) {
-        console.error('Error al insertar log:', error.message);
-    }
-}
-
 async function getProposal(sessionid) 
 {
     const vote = await CfProposalVote.findOne({ where: { sessionid } });
@@ -225,7 +204,14 @@ async function getProposal(sessionid)
 
 async function getProposalById(proposalid) 
 {
-    return await VpvProposal.findByPk(proposalid);
+    const proposal = await VpvProposal.findByPk(proposalid);
+    if (!proposal) return null;
+
+    return {
+        name: proposal.name,
+        description: proposal.description,
+        version: proposal.version
+    };
 }
 
 async function getSession(proposalid) 
@@ -594,6 +580,7 @@ async function getRestrictionTime(sessionid, day)
 
 async function getRestrictionIPs(sessionid, countriesid)
 {
+    //Busca todos los registros de la tabla intermetida VoteSessionIpPermission y se trae incluidos de una vez todos los whitelists
     const whitelistRecords = await VoteSessionIpPermission.findAll({
         where: { sessionid, allowed: false },
         include: [{
@@ -601,17 +588,18 @@ async function getRestrictionIPs(sessionid, countriesid)
             required: true,
             where: {
                 countryid: {
-                    [Op.in]: countriesid
+                    [Op.in]: countriesid //Op.in es un operador de sequelize que se puede igualar al IN( ) de SQL
                 }
             }
         }],
     });
 
+    //Recorre todos los registros y obtienes los datos que vamos a ocupar para las validaciones de ip
     const restrictions = whitelistRecords.map(record => ({
         initial_IP: record.VpvWhitelist.initial_IP,
         end_IP: record.VpvWhitelist.end_IP,
         countryid: record.VpvWhitelist.countryid,
-        allowed: record.VpvWhitelist.allowed,
+        allowed: record.allowed,
     }));
 
     return restrictions;
@@ -692,6 +680,15 @@ async function uploadImpactZones(proposalid, impactZoneData, transaction)
     }
 }
 
+async function uploadDirectList (sessionid, directList, transaction)
+{
+    const promises = directList.map(async (userid) => {
+        return createEligibility(userid, sessionid, transaction);
+    });
+
+    await Promise.all(promises);
+};
+
 module.exports = 
 {
     getVotingRulesForSession,
@@ -704,7 +701,6 @@ module.exports =
     backupVote,
     getLastFiveVotes,
     getQuestionsAndOptions,
-    insertLog,
     getProposal,
     getProposalById,
     getSession,
@@ -719,6 +715,7 @@ module.exports =
     getRestrictionTime,
     getRestrictionIPs,
     getCountriesByUserId,
-    uploadImpactZones
+    uploadImpactZones,
+    uploadDirectList
 };
 

@@ -4,14 +4,16 @@ const crypto = require('crypto');
 
 async function verifyMfaCode(method_id, code)
 {
+    //Encriptación del código brindado
     const hashedCode = crypto.createHash('sha256').update(code).digest();
 
+    //Busca por medio del código y el método de MFA si lo puede verificar
     const record = await MFACode.findOne({
         where: {
-        method_id,
-        code_hash: hashedCode,
-        code_status: 'PENDING',
-        remaining_attempts: { [Op.gt]: 0 }
+            method_id,
+            code_hash: hashedCode,
+            code_status: 'PENDING',
+            remaining_attempts: { [Op.gt]: 0 } //Op es un operador de sequelize //Op.gt significa mayor que, por lo tanto busca algún registro que en ese campo sea mayor que cero.
         }
     });
 

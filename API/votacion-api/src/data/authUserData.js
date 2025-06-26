@@ -1,4 +1,5 @@
 const { User, UserStatus, UserDemographic } = require('../db/sequelize');
+const { Op } = require('sequelize');
 
 async function findById(userid) 
 {
@@ -16,4 +17,23 @@ async function getDemographicData(userid)
     });
 }
 
-module.exports = { findById, getDemographicData, };
+async function getIdUsers (directList)
+{
+    const users = await User.findAll({
+        where: {
+            [Op.or]: directList.map(item => ({
+                [Op.and]: [
+                { username: item.username },
+                { identification: item.identification }
+                ]
+            }))
+        },
+        attributes: ['userid'],
+    });
+
+    const userIds = users.map(user => user.userid);
+
+    return userIds;
+};
+
+module.exports = { findById, getDemographicData, getIdUsers };
