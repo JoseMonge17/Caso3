@@ -142,23 +142,27 @@ async function getLastFiveVotes(userId)
 {
     try 
     {
+        // Buscar los últimos 5 registros de elegibilidad donde el usuario haya votado
         const elegibilities = await VoteElegibility.findAll({
-        where: {
-            userid: userId,
-            voted: true
-        },
-        order: [['elegibilityid', 'DESC']],
-        limit: 5
+            where: {
+                userid: userId,
+                voted: true
+            },
+            order: [['elegibilityid', 'DESC']],
+            limit: 5
         });
 
+        // Extraer los identificadores únicos anónimos de los resultados obtenidos
         const anonIds = elegibilities.map(e => e.elegibilityid);
 
+        // Si no hay votos registrados, retornar un arreglo vacío
         if (anonIds.length === 0) return [];
 
+        // Obtener los votos que coincidan con los IDs anónimos
         const ballots = await VoteBallot.findAll({
         where: {
             anonid: {
-                [Op.in]: anonIds
+                [Op.in]: anonIds // Busca donde el campo anonid esté dentro del array de IDs
             }
         }
         });

@@ -138,7 +138,7 @@ http://localhost:3000/dev/api/vote
 
 #### Código
 
-Donde se llama el handler en el function
+Donde se llama el handler del function
 ```javascript
 const { vote } = require('../services/voteService');
 
@@ -585,16 +585,357 @@ async function registerEncryptedVote({ sessionid, eligibility, encryptedVote, si
 
 ```javascript
 ```
-```javascript
-```
-```javascript
-```
-```javascript
-```
-```javascript
-```
 ### Endpoint comentar
 ### Endpoint listarVotos
+http://localhost:3000/dev/api/listVotes
+
+#### JSON de prueba
+```json
+{
+    "methodid": "1",
+    "codeMFA": "123456",
+    "livenessCheck": {
+        "check_type": "Facial Recognition",
+        "check_date": "2025-06-15T14:00:00",
+        "result": true,
+        "confidence_score": 97.25,
+        "algorithm_used": "FaceNet v3",
+        "device_info": "Pixel 6 - Android 13",
+        "requestid": 2
+    },
+    "biometricMedia": [
+        {
+            "filename": "selfie_front.jpg",
+            "storage_url": "https://example.com/uploads/selfie_front.jpg",
+            "file_size": 245000,
+            "uploaddate": "2025-06-15T14:00:05",
+            "hashvalue": "aabbccddeeff00112233445566778899",
+            "encryption_key_id": "key1",
+            "is_original": true,
+            "biotypeid": 1,
+            "mediatypeid": 1
+        },
+        {
+            "filename": "selfie_left.jpg",
+            "storage_url": "https://example.com/uploads/selfie_left.jpg",
+            "file_size": 235000,
+            "uploaddate": "2025-06-15T14:00:06",
+            "hashvalue": "112233445566778899aabbccddeeff00",
+            "encryption_key_id": "key2",
+            "is_original": false,
+            "biotypeid": 1,
+            "mediatypeid": 1
+        },
+        {
+            "filename": "selfie_right.jpg",
+            "storage_url": "https://example.com/uploads/selfie_right.jpg",
+            "file_size": 228000,
+            "uploaddate": "2025-06-15T14:00:07",
+            "hashvalue": "ffeeddccbbaa99887766554433221100",
+            "encryption_key_id": "key3",
+            "is_original": false,
+            "biotypeid": 1,
+            "mediatypeid": 1
+        }
+    ]
+}
+```
+
+#### Código
+
+Donde se llama el handler del function
+```javascript
+const { listVotes } = require('../services/listVotesService');
+
+module.exports.handler = async (event) => 
+{
+    try 
+    {
+        // Aqui se llama la data del usuario que provee el middleware una vez realizado el proceso de autorización
+        const data = JSON.parse(event.requestContext.authorizer.data);
+
+        // Nos traemos la información enviada por la aplicación o en este caso el Postman
+        const body = JSON.parse(event.body);
+
+        // Llamada a la función del service correspondiente donde se va a manejar toda la lógica
+        const result = await listVotes(data, body);
+
+        // Retorno de la API para mostrar en la aplicación o en este caso el Postman
+        return {
+            statusCode: 200,
+            body: JSON.stringify(result)
+        };
+
+    } catch (error) {
+        // Retorno en caso de error de la API para mostrar en la aplicación o en este caso el Postman
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: error.message })
+        };
+    }
+};
+```
+
+Función en el service donde se va a realizar toda la lógica del endpoint
+```javascript
+const { insertLog } = require('../data/logData');
+const { getLastFiveVotes, getQuestionsAndOptions, getProposal} = require('../data/voteData');
+const { verifyMfaCode } = require('../data/MfaVerification');
+const { saveLivenessData } = require('../data/livenessData');
+const crypto = require('crypto');
+
+async function listVotes(data, body) 
+{
+    const user = data.user
+
+    // Validar autenticación multifactor (MFA)
+    const { authenticated, error } = await verifyMfaCode(body.methodid, body.codeMFA);
+
+    if (!authenticated) 
+    {
+        throw new Error(error);
+    }
+
+    // Validar comprobación de vida
+    const result = await saveLivenessData(body.livenessCheck, body.biometricMedia, user.userid);
+
+    if(!result.success) throw new Error(result.error);
+
+    if(!body.livenessCheck.result) throw new Error("Identidad no confirmada")
+
+    // Confirmar existencia activa del ciudadano en el sistema
+    if (!user) throw new Error('Usuario no encontrado');
+
+    //      Validar estado
+    if (user.status.name !== "Active") {
+        throw new Error(`Usuario en estado '${user.status.name}'`);
+    }
+
+    // Consultar en la base las cinco últimas propuestas en las que ha participado mediante voto
+
+    const ballots = await getLastFiveVotes(user.userid);
+
+    //Array que guardará los votos
+    const votosSecretos = [];
+
+    // Obtener la llave criptográfica del usuario y transformarla en un buffer real
+    const userKey = Buffer.from(data.userkey.publicKey.data);
+
+    // Extraer los votos asociados, descifrarlos y mostrar: propuesta, fecha y decisión (resumen, no detalle)
+    for (const ballot of ballots) 
+    {
+        // Obtener la propuesta a la que se realizó el voto para mostrarselo al usuario
+        const propuesta = await getProposal(ballot.sessionid);
+
+        // Validacion del checksum para ver si no se malversó el voto
+        const esValido = verifyChecksumBallot(ballot);
+
+        if (!esValido) //Voto malversado
+        {
+            console.warn(`Checksum no coincide para ballot ${ballot.vote_registryid}`);
+            votosSecretos.push({
+                propuesta,
+                fecha: new Date(ballot.voteDate).toLocaleString('es-CR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                    timeZone: 'America/Costa_Rica'
+                }),
+                decision: "Su voto fue malversado"
+            })
+            continue;
+        }
+
+        let voto = null
+
+        //Si el voto no trae userid es secreto, si lo trae es público, por lo tanto no necesita desencriptarse
+        if (!ballot.userid) voto = desencriptarVoto(ballot.encryptedVote, userKey);
+        else voto = decodeJson(ballot.encryptedVote);
+
+        if (voto) 
+        {
+            votosSecretos.push({
+                propuesta,
+                fecha: new Date(ballot.voteDate).toLocaleString('es-CR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                    timeZone: 'America/Costa_Rica'
+                }),
+                decision: await formatearVotoEstructurado(voto)
+            });
+        }
+    }
+    // Registrar esta operación como evento de consulta auditada
+    await insertLog("Consulta auditada de últimas 5 votaciones realizada", body.livenessCheck.device_info, "Modulo votaciones / Mis ultimas 5 votaciones", user.userid, "userid", 1, 1, 1);
+
+    //Si está vacía es que el usuario no ha realizado votos
+    if(votosSecretos.length==0)
+    {
+        return {
+            success: true,
+            mensaje: "El usuario no ha participado en ninguna votación"
+        }
+    }
+    return votosSecretos;
+}
+
+// Decodificar un Buffer a JSON legible
+function decodeJson(buffer) 
+{
+    try 
+    {
+        // Convierte el Buffer binario a string UTF-8
+        const jsonStr = Buffer.from(buffer).toString('utf-8');
+
+        // Convierte el string a objeto JSON
+        return JSON.parse(jsonStr);
+    } catch (err) {
+        console.error('Error al decodificar voto:', err);
+        return null;
+    }
+}
+
+// Desencripta un voto encriptado usando AES-256-ECB y la key del usuario
+function desencriptarVoto(encryptedBuffer, keyBuffer) 
+{
+    try 
+    {
+        // Deriva la clave AES de 256 bits a partir del buffer de la key
+        const aesKey = crypto.createHash('sha256').update(keyBuffer).digest();
+
+        // Crea un descifrador AES en modo ECB sin IV 
+        const decipher = crypto.createDecipheriv('aes-256-ecb', aesKey, null);
+        decipher.setAutoPadding(true); //Se activa el relleno automático por que si el texto que se está descifrando no es múltiplo exacto de 16 bytes, hay que rellenarlo para que calce
+
+        // Convierte el buffer en base64
+        const encryptedBase64 = Buffer.from(encryptedBuffer).toString('base64');
+
+        // Descifra el contenido paso a paso y lo convierte a UTF-8
+        let decrypted = decipher.update(encryptedBase64, 'base64', 'utf8');
+        decrypted += decipher.final('utf8');
+
+        // Devuelve el resultado como JSON
+        return JSON.parse(decrypted);
+    } catch (err) {
+        console.error('Error al desencriptar el voto secreto:', err.message);
+        return null;
+    }
+}
+
+// Formatea un voto descifrado y lo estructura con las descripciones de preguntas y opciones
+async function formatearVotoEstructurado(voto) 
+{
+    // Extrae los IDs de preguntas del arreglo de respuestas
+    const questionIds = voto.map(v => v.questionid);
+
+     // Obtiene las preguntas y opciones relacionadas
+    const { questions, options } = await getQuestionsAndOptions(questionIds);
+
+    //Mapea cada respuesta que dió el usuario
+    return voto.map(respuesta => 
+    {
+        // Busca la descripción de la pregunta correspondiente
+        const pregunta = questions.find(q => q.questionid === respuesta.questionid);
+
+        // Busca las descripciones de las opciones seleccionadas
+        const respuestas = respuesta.optionsid.map(id => 
+        {
+            const op = options.find(o => o.optionid === id);
+            return op.description;
+        });
+
+        // Devuelve el objeto estructurado
+        return {
+            Pregunta: pregunta ? pregunta.description : '(pregunta desconocida)',
+            Respuestas: respuestas
+        };
+    });
+}
+
+// Verifica que el checksum del voto coincida con el generado en tiempo real (integridad del voto)
+function verifyChecksumBallot(ballot) 
+{
+    try 
+    {
+        // Convierte los campos del voto a Buffer para procesarlos con hash
+        const sigBuffer = Buffer.from(ballot.signature);
+        const voteBuffer = Buffer.from(ballot.encryptedVote);
+        const proofBuffer = ballot.proof ? Buffer.from(ballot.proof) : Buffer.alloc(0); // Si no hay prueba, usa buffer vacío
+
+        // Genera el hash SHA-256 para construir el checksum como en el momento del registro
+        const hash = crypto.createHash('sha256');
+        hash.update(sigBuffer);
+        hash.update(voteBuffer);
+        hash.update(Buffer.from('VotoPuraVidaCheckSumAsegurado'));
+        hash.update(proofBuffer);
+        hash.update(Buffer.from(ballot.anonid.toString()));
+        hash.update(Buffer.from(ballot.sessionid.toString()));
+
+        // Hash generado
+        const checksumGenerado = hash.digest();
+        // Carga el checksum original del voto guardado
+        const checksumOriginal = Buffer.from(ballot.checksum);
+
+        // Compara ambos buffers si son iguales, la integridad se mantiene
+        return checksumGenerado.equals(checksumOriginal);
+    } catch (err) {
+        console.error('Error verificando checksum:', err.message);
+        return false;
+    }
+}
+
+module.exports = {listVotes};
+```
+
+Funciones de llamada de la carpeta data, la cuál realiza el manejo de datos
+
+Función que se trae los últimos 5 votos realizados por el usuario
+```javascript
+async function getLastFiveVotes(userId)
+{
+    try 
+    {
+        // Buscar los últimos 5 registros de elegibilidad donde el usuario haya votado
+        const elegibilities = await VoteElegibility.findAll({
+            where: {
+                userid: userId,
+                voted: true
+            },
+            order: [['elegibilityid', 'DESC']],
+            limit: 5
+        });
+
+        // Extraer los identificadores únicos anónimos de los resultados obtenidos
+        const anonIds = elegibilities.map(e => e.elegibilityid);
+
+        // Si no hay votos registrados, retornar un arreglo vacío
+        if (anonIds.length === 0) return [];
+
+        // Obtener los votos que coincidan con los IDs anónimos
+        const ballots = await VoteBallot.findAll({
+        where: {
+            anonid: {
+                [Op.in]: anonIds // Busca donde el campo anonid esté dentro del array de IDs
+            }
+        }
+        });
+
+        return ballots;
+    } catch (error) {
+        console.error('Error al obtener votos por userId:', error.message);
+        return [];
+    }
+}
+```
 ### Endpoint configurarVotacion
 
 # Dashboard de consultas
