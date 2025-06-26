@@ -4,8 +4,19 @@ use VotoPuraVida;
 INSERT INTO vote_result_visibilities (description)
 VALUES
   ('After_Close'),         -- Se cierra el plazo de votación (AC)
-  ('After_All_Votes'),     -- Todos los elegibles ya votaron (AV)
+  ('After_All_Votes');     -- Todos los elegibles ya votaron (AV)
 
+
+-- Tipos de preguntas
+INSERT INTO vote_question_types (description)
+VALUES ('Selección Unica'), 
+       ('Selección Multiple');
+
+-- Reglas de decision
+INSERT INTO vote_rules (name, dataType) VALUES
+('Aceptación por mayoría', 'BIT'),
+('Aceptación por porcentaje', 'DECIMAL'),
+('Rechazo por mayoria', 'BIT');
 
 -- Tipos de votos
 INSERT INTO vote_types (name, description, singleWeight)
@@ -16,7 +27,7 @@ VALUES
 
 -- Status de sesiones
 INSERT INTO vote_sessions_status (name)
-VALUES ('Por Empezar', 'En Progreso', 'Terminado')
+VALUES ('Por Empezar'), ('En Progreso'), ('Terminado');
 
 
 -- Inserción de 7 sesiones de votos
@@ -36,5 +47,10 @@ VALUES
   ('2024-09-22 14:00:00', '2024-09-22 20:00:00', 0xF6071829, 3, 2, 2), -- Terminado, Privado, AV
   ('2025-05-01 10:30:00', '2025-05-01 16:30:00', 0x0718293A, 3, 2, 1); -- Terminado, PUBLICO, AC
 
-
+-- Reglas de aceptacion -- AQUI FALTAN 4 MAS
+INSERT INTO vote_acceptance_rules (quantity, description, enabled, sessionid, rule_typeid)
+VALUES
+  ('50', 'Aprobación por mayoría simple', 1, 1, 1),
+  ('67', 'Se requiere mayoría calificada de dos tercios', 1, 2, 2),
+  ('50', 'Aprobación por mayoría simple', 1, 3, 1);
 
