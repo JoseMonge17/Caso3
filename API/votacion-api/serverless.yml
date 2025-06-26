@@ -22,6 +22,26 @@ functions:
           authorizer:
             name: authorizerFunction
             type: token
+  
+  invest:
+  handler: src/functions/invest.handler
+  events:
+    - http:
+        path: /api/invest
+        method: post
+        authorizer:
+          name: authorizerFunction
+          type: token
+
+  distributeDividends:
+  handler: src/functions/distributeDividends.handler
+  events:
+    - http:
+        path: /api/distributeDividends
+        method: post
+        authorizer:
+          name: authorizerFunction
+          type: token
 
   vote:
     handler: src/functions/vote.handler
@@ -58,16 +78,6 @@ functions:
     events:
       - http:
           path: /api/configureVoting
-          method: post
-          authorizer:
-            name: authorizerFunction
-            type: token
-
-  invest:
-    handler: src/functions/invest.handler
-    events:
-      - http:
-          path: /api/invest
           method: post
           authorizer:
             name: authorizerFunction
