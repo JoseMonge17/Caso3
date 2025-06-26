@@ -86,7 +86,7 @@ INSERT INTO cf_projects (
   '2024-07-15',
   (SELECT statusid FROM cf_status_types WHERE name = 'En Recaudación'),
   1250000.00, -- Ya recaudó 1.25 millones
-  4,
+  2,
   (SELECT pjtypeid FROM cf_project_types WHERE name = 'Energías Renovables'),
   2000000.00, -- Mínimo 2 millones
   3000000.00, -- Meta 3 millones
@@ -109,7 +109,7 @@ INSERT INTO cf_projects (
   '2024-05-20',
   (SELECT statusid FROM cf_status_types WHERE name = 'En Ejecución'),
   500000.00, -- Completamente financiado
-  7,
+  3,
   (SELECT pjtypeid FROM cf_project_types WHERE name = 'Innovación Tecnológica'),
   300000.00, -- Mínimo 300 mil
   500000.00, -- Meta 500 mil
@@ -323,23 +323,24 @@ INSERT INTO cf_agreement_types (name) VALUES
 
 -- Portafolios para los usuarios inversores
 INSERT INTO cf_investment_portfolios (
-    available_balance, invested_balance, last_update, pending_returns, userid
+    available_balance, invested_balance, last_update, pending_returns, userid, portfoliotype
 ) VALUES
-(15000.00, 35000.00, GETDATE(), 2500.00, 1),  
-(50000.00, 120000.00, GETDATE(), 15000.00, 2),
-(150000.00, 180000.00, GETDATE(), 5000.00, 3),
-(60000.00, 120000.00, GETDATE(), 1500.00, 4),
-(90000.00, 120000.00, GETDATE(), 25000.00, 5),
-(60000.00, 120000.00, GETDATE(), 1500.00, 6),
-(50000.00, 120000.00, GETDATE(), 1000.00, 7),
-(50000.00, 120000.00, GETDATE(), 1000.00, 8),
-(50000.00, 120000.00, GETDATE(), 1500.00, 9),
-(50000.00, 120000.00, GETDATE(), 15000.00, 10), 
-(50000.00, 120000.00, GETDATE(), 15000.00, 11),
-(50000.00, 120000.00, GETDATE(), 15000.00, 12),
-(50000.00, 120000.00, GETDATE(), 15000.00, 13),
-(50000.00, 120000.00, GETDATE(), 15000.00, 14),
-(10000.00, 20000.00, GETDATE(), 3000.00, 15);   
+(12500.00, 42750.00, GETDATE(), 3800.00, 1, 1),  
+(48750.00, 115000.00, GETDATE(), 18750.00, 2, 1),
+(142300.00, 175500.00, GETDATE(), 6250.00, 3, 1),
+(63200.00, 118750.00, GETDATE(), 2250.00, 4, 1),
+(87500.00, 127500.00, GETDATE(), 31250.00, 5, 1),
+(58750.00, 115000.00, GETDATE(), 1875.00, 6, 1),
+(51250.00, 117500.00, GETDATE(), 1250.00, 7, 1),
+(48750.00, 122500.00, GETDATE(), 950.00, 8, 1),
+(52500.00, 118000.00, GETDATE(), 2100.00, 9, 1),
+(47500.00, 117500.00, GETDATE(), 16250.00, 10, 1), 
+(51250.00, 116250.00, GETDATE(), 14750.00, 11, 1),
+(48750.00, 122750.00, GETDATE(), 15350.00, 12, 1),
+(50250.00, 119500.00, GETDATE(), 14875.00, 13, 1),
+(49250.00, 121250.00, GETDATE(), 15125.00, 14, 1),
+(9750.00, 21250.00, GETDATE(), 3250.00, 15, 1),  
+(10250.00, 20750.00, GETDATE(), 3150.00, 1, 2);   
 
 -- Tipos de movimientos financieros
 INSERT INTO cf_movement_types (name) VALUES
@@ -350,7 +351,8 @@ INSERT INTO cf_movement_types (name) VALUES
 ('Reinversión'),
 ('Retiro de Fondos'),
 ('Pago de Intereses'),
-('Ajuste de Portafolio');
+('Ajuste de Portafolio'),
+('Pago de tarifa');
 
 /*
 Insertar Acuerdos de Inversión (cf_investment_agreements)
@@ -383,6 +385,7 @@ INSERT INTO cf_investment_agreements (
 INSERT INTO cf_report_types (name)
   VALUES ('Ganancias');
 
+/*
 INSERT INTO cf_financial_reports (
   period,
   reporttypeid,
@@ -391,7 +394,8 @@ INSERT INTO cf_financial_reports (
   approved,
   projectid,
   documentid,
-  uploaded_by
+  uploaded_by,
+
 )
 VALUES (
   '2025-Q2',          -- Periodo
@@ -403,6 +407,7 @@ VALUES (
   NULL,                 -- Documento cargado
   2                   -- Usuario que subió el archivo
 );
+*/
 
 -- Insertar inversiones para el proyecto 3 (5 inversionistas)
 INSERT INTO cf_investments (
@@ -503,21 +508,6 @@ UPDATE cf_project_funds
 SET available_funds = available_funds + 75000.00 -- $75,000 en ganancias
 WHERE projectid = 3;
 
--- Crear reporte financiero aprobado para las ganancias
-INSERT INTO cf_financial_reports (
-    period, reporttypeid, document_hash, submission_date,
-    approved, projectid, uploaded_by
-)
-VALUES (
-    '2025-Q2', 
-    (SELECT reporttypeid FROM cf_report_types WHERE name = 'Ganancias'),
-    HASHBYTES('SHA2_256', 'reporte_ganancias_q2_proyecto3'),
-    GETDATE(),
-    1, -- Aprobado
-    3, -- Proyecto 3
-    2  -- Subido por admin
-);
-
 -- Insertar tipos de transacción necesarios
 INSERT INTO vpv_transactiontypes (name) VALUES 
 ('Ingreso'),          -- Para registrar las ganancias del proyecto
@@ -535,32 +525,14 @@ INSERT INTO vpv_transactionsubtypes (name) VALUES
 ('Inversión deuda'),      -- Inversión como deuda
 ('Retorno de capital'),       -- Retorno de capital
 ('Gastos Operativos'),  -- Gastos operativos
-('Pago por hito');    -- Pago por hitos cumplidos
+('Pago por hito'),    -- Pago por hitos cumplidos
+('Inversionista'),
+('Grupo');
 
 -- Insertar monedas (con CRC como principal)
 INSERT INTO vpv_currencies (name, acronym, country, symbol) VALUES
 ('Costa Rican Colón', 'CRC', 'Costa Rica', '₡'),
 ('US Dollar', 'USD', 'United States', '$');
-
-
--- 3. Crear transacción de ganancias (asociada al reporte)
-INSERT INTO vpv_transactions (
-    name, description, amount, referencenumber, 
-    transactiondate, officetime, checksum,
-    transactiontypeid, transactionsubtypeid, currencyid
-)
-VALUES (
-    'Ganancias Proyecto 3 - Q2 2024',
-    'Ganancias generadas por la plataforma agrícola',
-    75000.00, -- $75,000 en ganancias (ejemplo)
-    NEWID(),
-    GETDATE(),
-    GETDATE(),
-    HASHBYTES('SHA2_256', 'transac_ganancias_proy3_q2'),
-    (SELECT transactiontypeid FROM vpv_transactiontypes WHERE name = 'Ingreso'),
-    (SELECT transactionsubtypeid FROM vpv_transactionsubtypes WHERE name = 'Ganancias Proyecto'),
-    (SELECT currencyid FROM vpv_currencies WHERE acronym = 'USD')
-);
 
 INSERT INTO vpv_paymentstatus (name) VALUES 
 ('Completed'),
@@ -568,6 +540,70 @@ INSERT INTO vpv_paymentstatus (name) VALUES
 ('Failed'),
 ('Reversed'),
 ('On Hold');
+
+DECLARE @PaymentID INT
+
+INSERT INTO vpv_payments (
+  amount, taxamount, discountporcent, realamount,
+  result, authcode, referencenumber, chargetoken,
+  date, checksum, statusid,
+  paymentmethodid, availablemethodid
+)
+VALUES (
+  75000.00,                       -- amount
+  0,                              -- taxamount (asumimos 0 para dividendos)
+  0,                              -- discountporcent
+  75000.00,                       -- realamount (igual al amount sin descuentos)
+  'COMPLETED',                    -- result
+  'INC-3-20250626',               -- authcode
+  'GAN-VOF-7880-002',             -- referencenumber
+  CONVERT(VARBINARY(255), 'pay_tok_3x7b9f2q1'),  -- chargetoken (ejemplo en formato binario)
+  GETDATE(),                      -- date
+  HASHBYTES('SHA2_256', '3-75000.00'), -- checksum
+  (SELECT paymentstatusid FROM vpv_paymentstatus WHERE name = 'Completed'), -- statusid
+  1,                              -- paymentmethodid
+  1                               -- availablemethodid
+);
+
+SET @PaymentID = SCOPE_IDENTITY();
+
+--Crear transacción de ENTRADA de fondos al sistema
+INSERT INTO vpv_transactions (
+  name, description, amount, referencenumber, 
+  transactiondate, officetime, checksum,
+  transactiontypeid, transactionsubtypeid, currencyid,
+  payid -- Asociamos el pago creado
+)
+VALUES (
+  'Ganancias Proyecto 3 - Q2 2024', 
+  'Depósito de ganancias generadas por la plataforma agrícola para distribución según reporte',
+  75000.00,
+  'GAN-VOF-7880-002',
+  GETDATE(),
+  GETDATE(),
+  HASHBYTES('SHA2_256', '3-75000.00'),
+  (SELECT transactiontypeid FROM vpv_transactiontypes WHERE name = 'Ingreso'),
+  (SELECT transactionsubtypeid FROM vpv_transactionsubtypes WHERE name = 'Ganancias Proyecto'),
+  (SELECT currencyid FROM vpv_currencies WHERE acronym = 'USD'),
+  @PaymentID
+);
+
+-- Crear reporte financiero aprobado para las ganancias
+INSERT INTO cf_financial_reports (
+    period, reporttypeid, document_hash, submission_date,
+    approved, projectid, uploaded_by, transactionid, name
+)
+VALUES (
+    '2025-Q2', 
+    (SELECT reporttypeid FROM cf_report_types WHERE name = 'Ganancias'),
+    HASHBYTES('SHA2_256', 'reporte_ganancias_q2_proyecto3'),
+    GETDATE(),
+    1, -- Aprobado
+    3, -- Proyecto 3
+    2,  -- Subido por admin
+    1,
+    'Reporte de Ganancias T2-2025 - Proyecto Plataforma de Agricultura Digital'
+);
 
 
 
