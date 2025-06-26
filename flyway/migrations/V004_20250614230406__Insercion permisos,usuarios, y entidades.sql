@@ -782,7 +782,7 @@ GO
 
 -- Ejecutar todos los procedimientos en orden
 EXEC [dbo].[insert_vpv_users];
-EXEC [dbo].[insert_vpv_modules];Add commentMore actions
+EXEC [dbo].[insert_vpv_modules];
 EXEC [dbo].[insert_vpv_roles];
 EXEC [dbo].[insert_vpv_permissions];
 EXEC [dbo].[assign_vpv_permissions_to_roles];
