@@ -5,7 +5,6 @@ module.exports.handler = async (event) => {
 
   const data = JSON.parse(event.requestContext.authorizer.data);
   const user = data.user;
-  console.log(data);
   try {
     const result = await procesarInversionSP(event.body, user);
     return {
