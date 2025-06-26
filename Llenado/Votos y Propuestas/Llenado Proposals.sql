@@ -3,25 +3,25 @@ use VotoPuraVida;
 -- Tipos de Propuestas
 INSERT INTO [dbo].[vpv_proposal_type] ([name], [description], [enabled]) 
 VALUES 
-('Infraestructura P鷅lica', 'Proyectos de desarrollo de infraestructura urbana', 1),
-('Energ韆 Renovable', 'Proyectos relacionados con energ韆s limpias', 1),
-('Innovaci髇 Tecnol骻ica', 'Soluciones tecnol骻icas innovadoras', 1),
+('Infraestructura P煤blica', 'Proyectos de desarrollo de infraestructura urbana', 1),
+('Energ铆a Renovable', 'Proyectos relacionados con energ铆as limpias', 1),
+('Innovaci贸n Tecnol贸gica', 'Soluciones tecnol贸gicas innovadoras', 1),
 ('Desarrollo Social', 'Iniciativas para mejorar condiciones sociales', 1),
-('Educaci髇', 'Proyectos educativos y formativos', 1),
+('Educaci贸n', 'Proyectos educativos y formativos', 1),
 ('Salud Comunitaria', 'Iniciativas para mejorar servicios de salud', 1),
-('Cultura y Arte', 'Proyectos culturales y art韘ticos', 1),
-('Medio Ambiente', 'Iniciativas de conservaci髇 ambiental', 1),
-('Desarrollo Econ髆ico', 'Proyectos para impulsar la econom韆 local', 1),
-('Turismo Sostenible', 'Iniciativas tur韘ticas con enfoque sostenible', 1);
+('Cultura y Arte', 'Proyectos culturales y art铆sticos', 1),
+('Medio Ambiente', 'Iniciativas de conservaci贸n ambiental', 1),
+('Desarrollo Econ贸mico', 'Proyectos para impulsar la econom铆a local', 1),
+('Turismo Sostenible', 'Iniciativas tur铆sticas con enfoque sostenible', 1);
 
 -- Estatus de Propuesta
 INSERT INTO [dbo].[vpv_proposal_status] ([name], [description], [enabled]) 
 VALUES 
-('En Revisi髇', 'Propuesta enviada para evaluaci髇', 1),
+('En Revisi贸n', 'Propuesta enviada para evaluaci贸n', 1),
 ('Aprobada', 'Propuesta aprobada para financiamiento', 1),
 ('Rechazada', 'Propuesta no aprobada', 1),
-('En Modificaci髇', 'Propuesta requiere ajustes', 1),
-('En Financiamiento', 'Propuesta en b鷖queda de fondos', 1),
+('En Modificaci贸n', 'Propuesta requiere ajustes', 1),
+('En Financiamiento', 'Propuesta en b煤squeda de fondos', 1),
 ('Financiada', 'Propuesta con financiamiento completo', 1),
 ('Cancelada', 'Propuesta cancelada por el proponente', 1);
 
@@ -29,16 +29,16 @@ VALUES
 INSERT INTO [dbo].[vpv_origin_type] ([name], [description], [enabled])
 VALUES
 ('Ciudadano', 'Propuesta originada por un ciudadano individual o grupo de ciudadanos', 1),
-('Entidad', 'Propuesta presentada por una organizaci髇, asociaci髇 o entidad privada', 1),
-('Gobierno', 'Propuesta generada por una instituci髇 gubernamental o entidad p鷅lica', 1);
+('Entidad', 'Propuesta presentada por una organizaci贸n, asociaci贸n o entidad privada', 1),
+('Gobierno', 'Propuesta generada por una instituci贸n gubernamental o entidad p煤blica', 1);
 
--- Tipos de validaci髇  
+-- Tipos de validaci贸n  
 INSERT INTO [vpv_validation_types] ([name], [description], [enabled])
 VALUES
-('Validaci髇 Autom醫ica', 'Validaci髇 realizada por sistema automatizado', 1),
-('Revisi髇 T閏nica', 'Revisi髇 por equipo t閏nico especializado', 1),
-('Aprobaci髇 Legal', 'Revisi髇 y aprobaci髇 por departamento legal', 1),
-('Verificaci髇 Financiera', 'An醠isis de viabilidad financiera', 1);
+('Validaci贸n Autom谩tica', 'Validaci贸n realizada por sistema automatizado', 1),
+('Revisi贸n T茅cnica', 'Revisi贸n por equipo t茅cnico especializado', 1),
+('Aprobaci贸n Legal', 'Revisi贸n y aprobaci贸n por departamento legal', 1),
+('Verificaci贸n Financiera', 'An谩lisis de viabilidad financiera', 1);
 
 -- Requests de validacion
 INSERT INTO [vpv_validation_request] ([creation_date], [finish_date], [global_result], [userid], [validation_typeid])
@@ -46,28 +46,28 @@ VALUES
 ('2024-01-15', '2024-02-10', 'Aprobado con observaciones menores', 101, 2),
 ('2024-01-20', '2024-02-05', 'Aprobado', 102, 4),
 ('2024-03-01', '2024-03-25', 'Aprobado', 103, 2),
-('2024-03-05', '2024-03-30', 'Rechazado - Requiere revisi髇', 104, 4),
+('2024-03-05', '2024-03-30', 'Rechazado - Requiere revisi贸n', 104, 4),
 ('2024-04-10', '2024-04-28', 'Aprobado', 105, 2),
 ('2024-04-12', NULL, 'En proceso', 106, 4);
 
 -- Tipos de secciones
 INSERT INTO [vpv_section_type] ([name], [description], [enabled])
 VALUES
-('Encabezado', 'Secci髇 inicial del documento', 1),
+('Encabezado', 'Secci贸n inicial del documento', 1),
 ('Cuerpo Principal', 'Contenido principal del documento', 1),
 ('Anexos', 'Documentos adjuntos o complementarios', 1),
-('Firmas', 'Secci髇 para firmas y aprobaciones', 1),
-('Metadatos', 'Informaci髇 t閏nica sobre el documento', 1);
+('Firmas', 'Secci贸n para firmas y aprobaciones', 1),
+('Metadatos', 'Informaci贸n t茅cnica sobre el documento', 1);
 
 -- Tipos de Documento
 INSERT INTO [vpv_document_type] ([name], [description], [enabled])
 VALUES
-('Estudio de Factibilidad', 'Documento t閏nico que analiza la viabilidad del proyecto', 1),
-('Plan Financiero', 'Presupuesto y proyecciones econ髆icas del proyecto', 1),
-('Permisos Legales', 'Documentaci髇 de permisos y autorizaciones requeridas', 1),
-('Plan de Ejecuci髇', 'Cronograma y metodolog韆 de implementaci髇', 1),
-('Impacto Ambiental', 'Evaluaci髇 de impacto ambiental del proyecto', 1),
-('Contrato de Inversi髇', 'Acuerdos con los inversionistas', 1);
+('Estudio de Factibilidad', 'Documento t茅cnico que analiza la viabilidad del proyecto', 1),
+('Plan Financiero', 'Presupuesto y proyecciones econ贸micas del proyecto', 1),
+('Permisos Legales', 'Documentaci贸n de permisos y autorizaciones requeridas', 1),
+('Plan de Ejecuci贸n', 'Cronograma y metodolog铆a de implementaci贸n', 1),
+('Impacto Ambiental', 'Evaluaci贸n de impacto ambiental del proyecto', 1),
+('Contrato de Inversi贸n', 'Acuerdos con los inversionistas', 1);
 
 -- Secciones de documentos
 INSERT INTO [vpv_document_sections] ([required], [order_index], [rules], [section_typeid], [document_typeid], [parent_sectionid])
@@ -95,11 +95,11 @@ VALUES
 -- Insert validation workflows
 INSERT INTO [vpv_validation_workflow] ([workflowid], [workflow_name], [description], [parameter], [schedule_interval], [url], [enabled])
 VALUES
-(1, 'Flujo B醩ico', 'Validaci髇 est醤dar para documentos simples', '{"max_pages": 50, "allowed_formats": ["pdf", "docx"]}', '7d', '/api/validation/basic', 1),
-(2, 'Flujo Financiero', 'Validaci髇 especializada para documentos financieros', '{"requires_signatures": true, "audit_trail": true}', '14d', '/api/validation/financial', 1),
-(3, 'Flujo Legal', 'Validaci髇 rigurosa para documentos legales', '{"legal_review": true, "notarization": false}', '30d', '/api/validation/legal', 1);
+(1, 'Flujo B谩sico', 'Validaci贸n est谩ndar para documentos simples', '{"max_pages": 50, "allowed_formats": ["pdf", "docx"]}', '7d', '/api/validation/basic', 1),
+(2, 'Flujo Financiero', 'Validaci贸n especializada para documentos financieros', '{"requires_signatures": true, "audit_trail": true}', '14d', '/api/validation/financial', 1),
+(3, 'Flujo Legal', 'Validaci贸n rigurosa para documentos legales', '{"legal_review": true, "notarization": false}', '30d', '/api/validation/legal', 1);
 
--- Workflows de validaci髇
+-- Workflows de validaci贸n
 INSERT INTO [vpv_document_workflows] ([workflow_order], [creation_date], [documentid], [workflowid], [enabled])
 VALUES
 (1, GETDATE(), 1, 1, 1),
@@ -110,7 +110,7 @@ VALUES
 (1, GETDATE(), 5, 1, 1),
 (1, GETDATE(), 6, 3, 1);
 
--- Request de validaci髇 
+-- Request de validaci贸n 
 
 
         
@@ -119,23 +119,23 @@ VALUES
 INSERT INTO [dbo].[vpv_proposal] (
     [name], [enabled], [current_version], [description], 
     [submission_date], [version], [origin_typeid], [userid], 
-    [statusid], [proposal_typeid], [entityid]
+    [statusid], [proposal_typeid], [entityid], [allows_comments]
 )
 VALUES
 -- 1. Initial proposal from Project 1: Boulevard Cartago
-('Expansi髇 Boulevard Cartago - Fase 1', 1, 1, 
- 'Propuesta inicial para ampliaci髇 de 5.2km del boulevard principal de Cartago',
- '2023-09-15', 1, 3, 101, 3, 1, 1),
+('Expansi贸n Boulevard Cartago - Fase 1', 1, 1, 
+ 'Propuesta inicial para ampliaci贸n de 5.2km del boulevard principal de Cartago',
+ '2023-09-15', 1, 3, 101, 3, 1, 1, 1),
 
 -- 2. Initial proposal from Project 2: Planta Solar Guanacaste
 ('Planta Solar Guanacaste - 4.5MW', 1, 1,
- 'Proyecto de generaci髇 solar para abastecer 6,500 hogares',
- '2024-01-10', 1, 2, 201, 3, 2, 2),
+ 'Proyecto de generaci贸n solar para abastecer 6,500 hogares',
+ '2024-01-10', 1, 2, 201, 3, 2, 2, 1),
 
 -- 3. Initial proposal from Project 3: Plataforma Agricultura Digital
 ('AgriTech CR - Plataforma Digital', 1, 1,
- 'Soluci髇 tecnol骻ica para optimizaci髇 de cultivos para peque駉s agricultores',
- '2024-04-05', 1, 2, 301, 3, 3, 3);
+ 'Soluci贸n tecnol贸gica para optimizaci贸n de cultivos para peque帽os agricultores',
+ '2024-04-05', 1, 2, 301, 3, 3, 3, 1);
 
  -------------------------------------------------------------------------------------------------------------------------------
 
