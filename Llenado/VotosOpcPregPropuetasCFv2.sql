@@ -1,4 +1,6 @@
-﻿INSERT INTO [dbo].[vpv_proposal_type] ([name], [description], [enabled]) 
+﻿use VotoPuraVida;
+
+INSERT INTO [dbo].[vpv_proposal_type] ([name], [description], [enabled]) 
 VALUES 
 ('Infraestructura Pública', 'Proyectos de desarrollo de infraestructura urbana', 1),
 ('Energía Renovable', 'Proyectos relacionados con energías limpias', 1),
@@ -30,67 +32,96 @@ VALUES
 INSERT INTO [dbo].[vpv_proposal] (
     [name], [enabled], [current_version], [description], 
     [submission_date], [version], [origin_typeid], [userid], 
-    [statusid], [proposal_typeid], [entityid]
+    [statusid], [proposal_typeid], [entityid], [allows_comments]
 )
 VALUES
 -- 1. Initial proposal from Project 1: Boulevard Cartago
 ('Expansión Boulevard Cartago - Fase 1', 1, 1, 
  'Propuesta inicial para ampliación de 5.2km del boulevard principal de Cartago',
- '2023-09-15', 1, 3, 101, 1, 1, 3),
+ '2023-09-15', 1, 3, 101, 1, 1, 3, 1),
 
 -- 2. Initial proposal from Project 2: Planta Solar Guanacaste
 ('Planta Solar Guanacaste - 4.5MW', 1, 1,
  'Proyecto de generación solar para abastecer 6,500 hogares',
- '2024-01-10', 1, 2, 201, 1, 2, 5),
+ '2024-01-10', 1, 2, 201, 1, 2, 5, 1),
 
 -- 3. Initial proposal from Project 3: Plataforma Agricultura Digital
 ('AgriTech CR - Plataforma Digital', 1, 1,
  'Solución tecnológica para optimización de cultivos para pequeños agricultores',
- '2024-04-05', 1, 2, 301, 2, 3, 21),
+ '2024-04-05', 1, 2, 301, 2, 3, 21, 1),
 
  -- 4. Propuesta para sistema de bicicletas públicas
 ('Sistema de Bicicletas Públicas en San José', 1, 1,
  'Implementación de 50 estaciones con 500 bicicletas en el centro de la capital',
- '2024-02-20', 1, 3, 102, 4, 3, 1),
+ '2024-02-20', 1, 3, 102, 4, 3, 1, 1),
 
 -- 5. Programa de reciclaje comunitario
 ('EcoBarrios: Programa Integral de Reciclaje', 1, 2,
  'Separación en origen con recolección diferenciada en 15 distritos',
- '2023-11-08', 2, 1, 45, 5, 2, 11),
+ '2023-11-08', 2, 1, 45, 5, 2, 11, 1),
 
 -- 6. Modernización de mercado municipal
 ('Remodelación Mercado Central de Heredia', 1, 1,
  'Actualización de infraestructura y servicios del principal mercado de la provincia',
- '2024-03-12', 1, 3, 103, 6, 3, 4),
+ '2024-03-12', 1, 3, 103, 6, 3, 4, 1),
 
 -- 7. Plataforma de participación ciudadana
 ('Plataforma Digital "Mi Voz"', 1, 1,
  'Sistema en línea para propuestas y consultas ciudadanas al gobierno local',
- '2023-12-05', 1, 3, 104, 6, 1, 30),
+ '2023-12-05', 1, 3, 104, 6, 1, 30, 1),
 
 -- 8. Programa de preservación cultural
 ('Rescate de Tradiciones Guanacastecas', 1, 1,
  'Talleres y eventos para preservar música, danza y artesanías tradicionales',
- '2024-01-25', 1, 2, 202, 3, 4, 23),
+ '2024-01-25', 1, 2, 202, 3, 4, 23, 1),
 
 -- 9. Mejora de infraestructura educativa
 ('Techado para Canchas Deportivas Escolares', 1, 1,
  'Construcción de 10 techos para canchas en escuelas de zonas lluviosas',
- '2024-04-15', 1, 1, 46, 3, 5, 19),
+ '2024-04-15', 1, 1, 46, 3, 5, 19, 1),
 
 -- 10. Programa de seguridad vial
 ('Rutas Seguras: Iluminación y Cámaras', 1, 1,
  'Instalación de 200 luminarias y 50 cámaras en rutas escolares prioritarias',
- '2023-10-30', 1, 3, 105, 1, 2, 10);
+ '2023-10-30', 1, 3, 105, 1, 2, 10, 1);
+
+
+ -- Reglas de decision
+INSERT INTO vote_rules (name, dataType) VALUES
+('Aceptación por mayoría', 'BIT'),
+('Aceptación por porcentaje', 'DECIMAL'),
+('Rechazo por mayoria', 'BIT');
+
+
+
+
+
+
+
+
+
 
  -- Insertar tipos de votación
-INSERT INTO [dbo].[vote_types] ([name], [description], [singleWeight])
+/*INSERT INTO [dbo].[vote_types] ([name], [description], [singleWeight])
 VALUES 
 ('Mayoría Simple', 'Decisión por mayoría simple de votos', 1),
 ('Mayoría Calificada', 'Requiere al menos 2/3 de votos afirmativos', 1),
 ('Unánime', 'Requiere aprobación por todos los votantes', 0),
 ('Ponderada', 'Votos con pesos diferentes según criterios', 0),
 ('Público', 'Votación abierta a toda la comunidad', 1);
+*/
+
+-- Tipos de votos
+INSERT INTO vote_types (name, description, singleWeight)
+VALUES
+  ('Publico', 'Se puede ver quien voto en una sesión particular', 0),
+  ('Privado', 'No se puede ver quien voto en una sesión particular', 0);
+
+
+
+
+
+
 
 -- Insertar estados de sesión
 INSERT INTO [dbo].[vote_sessions_status] ([name])
@@ -101,14 +132,34 @@ VALUES
 ('Cancelada'),
 ('Suspendida');
 
+
+
+
+
+
+
+
 -- Insertar tipos de visibilidad de resultados
-INSERT INTO [dbo].[vote_result_visibilities] ([description])
+/*INSERT INTO [dbo].[vote_result_visibilities] ([description])
 VALUES 
 ('Público'),
 ('Privado'),
 ('Solo participantes'),
 ('Resultados parciales'),
 ('Oculto hasta finalización');
+*/
+
+-- Visibilidades de los votos
+INSERT INTO vote_result_visibilities (description)
+VALUES
+  ('After_Close'),         -- Se cierra el plazo de votación (AC)
+  ('After_All_Votes');     -- Todos los elegibles ya votaron (AV)
+
+
+
+
+
+
 
 -- Insertar sesiones de votación
 INSERT INTO [dbo].[vote_sessions] (
@@ -159,53 +210,43 @@ INSERT INTO [dbo].[cf_proposal_votes] ([date], [result], [sessionid], [proposali
 VALUES 
 -- Propuesta 1: Expansión Boulevard Cartago (proposalid=1)
 ('2023-09-20 10:15:00', 1, 9, 1),  -- Sesión 9
-('2023-09-20 14:30:00', 1, 9, 1),
-('2023-09-21 11:20:00', 0, 9, 1),
+
 
 -- Propuesta 2: Planta Solar Guanacaste (proposalid=2)
 ('2024-01-15 09:45:00', 1, 11, 2),  -- Sesión 11
-('2024-01-16 15:10:00', 1, 11, 2),
-('2024-01-17 10:30:00', 1, 11, 2),
+
 
 -- Propuesta 3: AgriTech CR (proposalid=3)
 ('2024-04-10 14:20:00', 1, 12, 3),  -- Sesión 12
-('2024-04-11 11:15:00', 0, 12, 3),
-('2024-04-12 16:45:00', 1, 12, 3),
+
 
 -- Propuesta 4: Bicicletas Públicas (proposalid=4)
 ('2024-02-25 09:30:00', 1, 10, 4),  -- Sesión 10
-('2024-02-26 14:15:00', 1, 10, 4),
-('2024-02-27 10:50:00', 0, 10, 4),
+
 
 -- Propuesta 5: EcoBarrios (proposalid=5)
 ('2023-11-15 13:25:00', 1, 8, 5),   -- Sesión 8
-('2023-11-16 10:40:00', 1, 8, 5),
-('2023-11-17 15:20:00', 1, 8, 5),
+
 
 -- Propuesta 6: Mercado Heredia (proposalid=6)
 ('2024-03-18 11:10:00', 1, 7, 6),   -- Sesión 7
-('2024-03-19 14:50:00', 0, 7, 6),
-('2024-03-20 09:35:00', 1, 7, 6),
+
 
 -- Propuesta 7: Plataforma Mi Voz (proposalid=7)
 ('2023-12-10 10:20:00', 1, 6, 7),    -- Sesión 6
-('2023-12-11 15:30:00', 1, 6, 7),
-('2023-12-12 11:45:00', 1, 6, 7),
+
 
 -- Propuesta 8: Tradiciones Guanacastecas (proposalid=8)
 ('2024-01-30 09:15:00', 1, 5, 8),    -- Sesión 5
-('2024-01-31 14:25:00', 0, 5, 8),
-('2024-02-01 10:40:00', 1, 5, 8),
+
 
 -- Propuesta 9: Techados Escolares (proposalid=9)
 ('2024-04-20 13:50:00', 1, 4, 9),    -- Sesión 4
-('2024-04-21 10:15:00', 1, 4, 9),
-('2024-04-22 15:30:00', 1, 4, 9),
+
 
 -- Propuesta 10: Rutas Seguras (proposalid=10)
 ('2023-11-05 09:40:00', 1, 3, 10),   -- Sesión 3
-('2023-11-06 14:20:00', 1, 3, 10),
-('2023-11-07 11:10:00', 0, 3, 10);
+
 
 INSERT INTO [dbo].[vote_question_types] ( [description])
 VALUES 
