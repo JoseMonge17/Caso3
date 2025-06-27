@@ -7,7 +7,6 @@ async function ejecutarInversionSP(params) {
     userid: params.userid,
     monto: params.monto,
     codigoPago: params.codigoPago,
-    numeroreferencia: params.numeroreferencia,  
     token: params.token,
     metodoPagoId: params.metodoPagoId || 1,           
   },
@@ -16,7 +15,6 @@ async function ejecutarInversionSP(params) {
     userid: sql.Int,
     monto: sql.Float,
     codigoPago: sql.NVarChar(100),
-    numeroreferencia: sql.NVarChar(100),
     token: sql.NVarChar(200),
     metodoPagoId: sql.Int
   });

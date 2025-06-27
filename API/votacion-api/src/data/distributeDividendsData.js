@@ -6,7 +6,6 @@ async function distributeDividends(params) {
         projectId: params.project_id,
         ReporteGananciasID: params.finance_report_id,
         UsuarioEjecutor: params.userid,
-        numeroreferencia: params.master_reference || `DIV-${Date.now()}`,
         PayMethodId: params.payment_methodid
     };
 
@@ -15,7 +14,6 @@ async function distributeDividends(params) {
         projectId: sql.Int,
         ReporteGananciasID: sql.Int,
         UsuarioEjecutor: sql.Int,
-        numeroreferencia: sql.NVarChar(100),
         PayMethodId: sql.Int
     };
 
@@ -46,11 +44,8 @@ module.exports = { distributeDividends };
 
 /*
 {
-  "project_id": 1,
-  "finance_report_id": 2,
+  "project_id": 3,
+  "finance_report_id": 1,
   "payment_methodid": 3, 
-  "master_reference": "DIV-MASTER-20240601-002",
-  "investor_references": ["DIV-INV-20240515-41258"],  // Array.
-  "commission_references": ["DIV-COM-20240515-A1-001"]
 }
 */ 
