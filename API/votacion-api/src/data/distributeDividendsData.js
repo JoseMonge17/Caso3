@@ -25,9 +25,9 @@ async function distributeDividends(params) {
       success: true,
       transactionId: result[0]?.TransactionID,
       amounts: {
-        total: result[0]?.TotalGanancias,
-        fees: result[0]?.ComisionesAplicadas,
-        distributed: result[0]?.DistribuidoInversionistas
+        total: result[0]?.TotalGanancias, // total de las ganancias
+        fees: result[0]?.ComisionesAplicadas, // comisiones aplicadas
+        distributed: result[0]?.DistribuidoInversionistas // fondos distribuidos entre inversionistas 
       },
       metadata: {
         projectId: params.project_id,
