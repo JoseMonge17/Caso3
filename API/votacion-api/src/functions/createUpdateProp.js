@@ -8,7 +8,22 @@ module.exports.handler = async (event) => {
   console.log("🧑 Usuario autenticado:", user.username);
 
   try {
-    const result = await procesarCrearActualizarPropuestaSP(event.body, user);
+    const body = JSON.parse(event.body || '{}');
+    
+    if (body.documents && Array.isArray(body.documents)) {
+      body.documents = body.documents.map(doc => ({
+        name: doc.name || `Documento-${Date.now()}`,
+        url: doc.url || '',
+        hash: doc.hash || '',
+        metadata: doc.metadata ? JSON.stringify(doc.metadata) : '{}',
+        validation_date: null,
+        requestid: null,
+        document_typeid: doc.document_typeid || 0,
+        is_required: doc.is_required ? 1 : 0
+      }));
+    }
+
+    const result = await procesarCrearActualizarPropuestaSP(JSON.stringify(body), user);
     console.log("✅ SP ejecutado correctamente");
 
     return {
@@ -40,10 +55,24 @@ module.exports.handler = async (event) => {
   "description": "Proyecto para instalar paneles solares en escuelas rurales.",
   "origin_typeid": 1,
   "proposal_typeid": 2,
-  "entityid": null,  // O el ID de la entidad si aplica
+  "entityid": null,
   "documents": [
-    { "documentid": 1, "is_required": true },
-    { "documentid": 3, "is_required": false }
+    {
+      "name": "Estudio Ambiental Preliminar",
+      "url": "https://example.com/docs/ambiental.pdf",
+      "hash": "doc002hash",
+      "metadata": {"evaluador":"Carlos Rivera","riesgo":"bajo"},
+      "document_typeid": 3,
+      "is_required": false
+    },
+    {
+      "name": "Presupuesto Detallado",
+      "url": "https://example.com/docs/presupuesto.pdf",
+      "hash": "doc003hash",
+      "metadata": {"moneda":"USD","vigencia":"2023-12-31"},
+      "document_typeid": 5,
+      "is_required": true
+    }
   ],
   "version_comment": "Primera versión de la propuesta."
 }
