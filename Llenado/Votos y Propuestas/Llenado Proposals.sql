@@ -17,7 +17,6 @@ VALUES
 -- Estatus de Propuesta
 INSERT INTO [dbo].[vpv_proposal_status] ([name], [description], [enabled]) 
 VALUES 
-('Borrador', 'Propuesta en fase de elaboración', 1),
 ('En Revisión', 'Propuesta enviada para evaluación', 1),
 ('Aprobada', 'Propuesta aprobada para financiamiento', 1),
 ('Rechazada', 'Propuesta no aprobada', 1),
@@ -39,9 +38,7 @@ VALUES
 ('Validación Automática', 'Validación realizada por sistema automatizado', 1),
 ('Revisión Técnica', 'Revisión por equipo técnico especializado', 1),
 ('Aprobación Legal', 'Revisión y aprobación por departamento legal', 1),
-('Verificación Financiera', 'Análisis de viabilidad financiera', 1),
-('Validación de propuesta', 'Validación de los documentos digitales asociados a una propuesta', 1),
-('Validación de comentario', 'Validación de los documentos digitales adjuntados en un comentario', 1);
+('Verificación Financiera', 'Análisis de viabilidad financiera', 1);
 
 -- Requests de validacion
 INSERT INTO [vpv_validation_request] ([creation_date], [finish_date], [global_result], [userid], [validation_typeid])

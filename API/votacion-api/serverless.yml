@@ -83,26 +83,6 @@ functions:
             name: authorizerFunction
             type: token
   
-  createUpdateProp:
-    handler: src/functions/createUpdateProp.handler
-    events:
-      - http:
-          path: /api/createUpdateProp
-          method: post
-          authorizer:
-            name: authorizerFunction
-            type: token
-
-  revisarPropuesta:
-    handler: src/functions/proposalReview.handler
-    events:
-      - http:
-          path: /api/revisarPropuesta
-          method: post
-          authorizer:
-            name: authorizerFunction
-            type: token
-  
   authorizerFunction:
     handler: src/functions/authMiddleware.handler
 

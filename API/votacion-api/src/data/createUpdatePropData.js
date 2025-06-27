@@ -10,8 +10,8 @@ async function crearOActualizarPropuesta(params) {
       userid: params.userid,
       proposal_typeid: params.proposal_typeid,
       entityid: params.entityid, // Puede ser null
-      documents: JSON.stringify(params.documents), // Asegurar conversión a JSON
-      version_comment: params.version_comment || null // Manejo de valor nulo
+      documents: JSON.stringify(params.documents),
+      version_comment: params.version_comment || null
     },
     {
       name: sql.VarChar(100),

@@ -14,7 +14,7 @@ async function workflow({ userid }) {
         validation_typeid
     });
 
-    //await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     await request.update({
         finish_date: new Date(),
@@ -43,6 +43,9 @@ async function getValidationTypeIdByName(name) {
 }
 
 module.exports = {
-    getValidationTypeIdByName,
-    workflow
+    getValidationTypeIdByName
+};
+
+module.exports = {
+    workflow: validationRequest
 };

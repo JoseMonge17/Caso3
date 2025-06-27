@@ -1,6 +1,6 @@
 const { getProposalById } = require('../data/proposalData');
 const { insertComment, insertRejectedCommentLog, insertAttachmentAndLink } = require('../data/commentData.js');
-const { workflow } = require('../data/documentData')
+const { validationRequest } = require('../data/documentData')
 const crypto = require('crypto');
 
 async function comment(data, body) 
