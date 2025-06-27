@@ -56,12 +56,284 @@ Fecha de entrega: 28 de junio de 2025
 
 # Implementación de la API
 
+### **Estructura de la API:**  
+
+El proyecto **Voto Pura Vida** sigue una arquitectura limpia y modular, organizada en tres capas principales: **Handlers**, **Services** y **Data**. Esta separación garantiza escalabilidad, mantenibilidad y una clara división de responsabilidades. Cada capa tiene un propósito específico y se comunica únicamente con la siguiente, evitando acoplamientos innecesarios.  
+
+---
+
+#### **1. Capa de Handlers**  
+**Ubicación:** src/functions/  
+**Responsabilidad:** Manejar solicitudes http, extraer datos de la petición y delegar la lógica a los servicios.  
+
+- **Ejemplo:** `src/functions/distributeDividends.js`  
+  ```javascript
+  const { procesarDividendosSP } = require('../services/distributeDividendsService');
+
+  module.exports.handler = async (event) => {
+    const user = JSON.parse(event.requestContext.authorizer.data).user;
+    try {
+      const result = await procesarDividendosSP(event.body, user);
+      return { statusCode: 200, body: JSON.stringify(result) };
+    } catch (err) {
+      return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    }
+  };
+  ```
+  - **Flujo:**  
+    1. Recibe el evento HTTP (ej: POST /api/distributeDividends).  
+    2. Extrae datos del usuario desde el contexto de autorización.  
+    3. Invoca el servicio correspondiente (procesarDividendosSP).  
+    4. Devuelve la respuesta HTTP (éxito o error).  
+---
+
+#### **2. Capa de Services**  
+**Ubicación:** src/services/  
+**Responsabilidad:** Orquestar reglas de negocio, validaciones y transformaciones de datos antes de interactuar con la base de datos.  
+
+- **Ejemplo:** `src/services/distributeDividendsService.js`  
+  ```javascript
+  const { distributeDividends } = require('../data/distributeDividendsData');
+
+  async function procesarDividendosSP(body, user) {
+    const input = JSON.parse(body || '{}');
+    if (!input.project_id || !input.finance_report_id) {
+      throw new Error('Faltan parámetros requeridos');
+    }
+    return await distributeDividends({ ...input, userid: user.userid });
+  }
+  ```
+  - **Flujo:**  
+    1. Valida los parámetros de entrada (ej: project_id obligatorio).  
+    2. Combina datos del request con información del usuario (ej: userid).  
+    3. Llama a la capa de datos (distributeDividends).  
+---
+
+#### **3. Capa de Data (Acceso a Base de Datos)**  
+**Ubicación:** src/data/  
+**Responsabilidad:** Interactuar directamente con la base de datos mediante **Stored Procedures** u **ORM** (Sequelize).  
+
+- **Ejemplo con Stored Procedures:** src/data/distributeDividendsData.js  
+  ```javascript
+  const { executeSP, sql } = require('../db/config');
+
+  async function distributeDividends(params) {
+    const spParams = {
+      projectId: params.project_id,
+      UsuarioEjecutor: params.userid,
+    };
+    return await executeSP('SP_RepartirDividendos', spParams, {
+      projectId: sql.Int,
+      UsuarioEjecutor: sql.Int,
+    });
+  }
+  ```
+  - **Flujo:**  
+    1. Mapea parámetros de JavaScript a tipos de SQL Server (**sql.Int**, **sql.NVarChar**).  
+    2. Ejecuta el procedimiento almacenado (**executeSP**).  
+
+- **Ejemplo con ORM (Sequelize):** src/data/authUserData.js  
+  ```javascript
+  const { User } = require('../db/sequelize');
+
+  async function findById(userid) {
+    return await User.findByPk(userid, {
+      include: [{ model: UserStatus, as: 'status' }]
+    });
+  }
+  ```
+  - **Ventajas:**  
+    - Consultas legibles y tipadas.  
+    - Relaciones predefinidas (ej: **User ↔ UserStatus**).  
+
+---
+
+#### **4. Configuración de la Base de Datos**  
+**Ubicación:** src/db/  
+- **config.js:** Conexión a SQL Server con mssql.  
+  ```javascript
+  const config = {
+    user: 'votouser',
+    server: 'localhost',
+    database: 'VotoPuraVida',
+    options: { encrypt: true }
+  };
+  ```
+- **sequelize.js:** Modelos de Sequelize (ej: User, VoteSession).  
+  ```javascript
+  const User = sequelize.define('vpv_users', {
+    userid: { type: DataTypes.INTEGER, primaryKey: true },
+    username: { type: DataTypes.STRING(100) },
+  });
+  ```
+
+---
+
+**Ejemplo completo (End-to-End):**  
+1. Un cliente envía `POST /api/distributeDividends` con un JWT válido.  
+2. El **handler** extrae el `userid` del token y pasa el cuerpo de la petición al **service**.  
+3. El **service** valida los campos y envía los datos a la capa **data**.  
+4. La capa **data** ejecuta un stored procedure en SQL Server u ORM y devuelve los resultados.  
+
+---
+
+### **Middleware de Autorización:**  
+
+El middleware de autorización en **Voto Pura Vida** actúa como un guardián de seguridad para todos los endpoints protegidos. Su función principal es validar la identidad del usuario, verificar sus permisos y enriquecer el contexto de la solicitud con datos críticos (como roles, claves públicas y sesiones activas). A continuación, se describe su implementación paso a paso:
+
+---
+
+#### **1. Configuración en `serverless.yml`**  
+Cada endpoint protegido declara el middleware *authorizerFunction* en su configuración. Por ejemplo:  
+```yaml
+functions:
+  vote:
+    handler: src/functions/vote.handler
+    events:
+      - http:
+          path: /api/vote
+          method: post
+          authorizer:
+            name: authorizerFunction  # Nombre de la función Lambda del autorizador
+            type: token               # Tipo de autorización (JWT)
+```
+
+- **type: token**: Indica que el cliente debe enviar un JWT en el header **Authorization**.  
+- **Flujo**:  
+  - Cuando se llama a **/api/vote**, AWS Lambda (o **serverless-offline** localmente) ejecuta primero **authMiddleware.handler**.  
+  - Solo si el middleware retorna **isAuthorized: true**, se invoca el handler principal (**vote.handler**).
+
+---
+
+#### **2. Implementación del Middleware (`authMiddleware.js`)**  
+El middleware sigue un flujo estricto de validación:  
+
+##### **a. Extracción y Verificación del Token**  
+```javascript
+const token = event.authorizationToken?.split(" ")[1]; // Extrae "Bearer <token>"
+const decoded = jwt.verify(token, SECRET_KEY); // Verifica firma JWT
+```
+- **SECRET_KEY**: Clave secreta para firmar/verificar tokens (debe almacenarse en variables de entorno en producción).  
+- Si el token es inválido o está expirado, **jwt.verify** lanza un error y el middleware retorna **Effect: "Deny"**.
+
+##### **b. Consulta a la Base de Datos**  
+El middleware realiza múltiples consultas para validar la sesión y permisos:  
+```javascript
+const user = await getUser(decoded.id); // Obtiene usuario por ID
+const session = await getSessionByToken(token); // Busca sesión activa
+const permissions = await getPermissionsByUser(user.userid); // Permisos del usuario
+const userkey = await getUserKeyById(session.key_id); // Clave pública del usuario
+```
+- **`getSessionByToken`**:  
+  - Hashea el token con SHA-256 (para coincidir con el almacenado en BD).  
+  - Verifica que la sesión no esté expirada (expiration_date).  
+  ```javascript
+  const hashedToken = crypto.createHash('sha256').update(token).digest();
+  await AuthSession.findOne({ where: { session_token_hash: hashedToken } });
+  ```
+
+##### **c. Construcción del Contexto**  
+Si todo es válido, el middleware empaqueta los datos en el **context**:  
+```javascript
+return {
+  principalId: decoded.id,
+  policyDocument: { /* ... */ },
+  isAuthorized: true,
+  context: {
+    "data": JSON.stringify({
+      user,        // Datos del usuario (ej: userid, roles)
+      permissions, // Lista de permisos (ej: ["vote", "create_proposal"])
+      userkey      // Clave pública para operaciones criptográficas
+    })
+  }
+};
+```
+- **Uso en Handlers**:  
+  Los endpoints acceden a estos datos desde **event.requestContext.authorizer.data**.  
+  ```javascript
+  // Ejemplo en distributeDividends.handler
+  const user = JSON.parse(event.requestContext.authorizer.data).user;
+  ```
+
+##### **d. Manejo de Errores**  
+Si falla cualquier paso, el middleware deniega el acceso:  
+```javascript
+return {
+  principalId: "anonymous",
+  policyDocument: { Effect: "Deny" },
+  isAuthorized: false
+};
+```
+
+---
+
+#### **3. Capa de Servicio (`authService.js`)**  
+El middleware delega la lógica de negocio a servicios especializados:  
+
+##### **`getUser`**  
+- Valida que el usuario exista y esté activo:  
+  ```javascript
+  if (user.status.name !== "Active") throw new Error("Usuario inactivo");
+  ```
+
+##### **`getSessionByToken`**  
+- Usa el modelo `AuthSession` de Sequelize para buscar sesiones:  
+  ```javascript
+  const session = await AuthSession.findOne({ where: { session_token_hash: hashedToken } });
+  ```
+
+##### **`getPermissionsByUser`**  
+- Consulta permisos asociados a roles del usuario:  
+  ```javascript
+  const permissions = await RolePermission.findAll({ 
+    where: { roleid: user.roles.map(r => r.roleid) } 
+  });
+  ```
+
+---
+
+#### **4. Seguridad Adicional**  
+- **Cifrado de Tokens**:  
+  Los tokens de sesión se almacenan hasheados (SHA-256) en BD para prevenir robos.  
+- **Validación de Claves Públicas**:  
+  La clave pública (`userkey`) se usa para firmar operaciones críticas (ej: votos).  
+
+---
+
+### **¿Por qué esta Implementación?**  
+- **Seguridad en Capas**: Combina JWT, hashing y validación en BD.  
+- **Eficiencia**: Centraliza la lógica de autorización en un solo lugar.  
+- **Flexibilidad**: El contexto inyectado evita repetir consultas en cada endpoint.  
+- **Preparado para la Nube**: El formato del middleware es compatible con AWS API Gateway.  
+
+Este diseño garantiza que solo usuarios autenticados y autorizados puedan interactuar con endpoints.
+
 ## Endpoints implementados por Stored Procedures
 
 ### Endpoint crearActualizarPropuesta
 ### Endpoint revisarPropuesta
 ### Endpoint invertir
+
+#### JSON de prueba 
+
+```json
+
+```
+
 ### Endpoint repartirDividendos
+
+#### JSON de prueba 
+
+```json
+{
+  "project_id": 3,
+  "finance_report_id": 1,
+  "payment_methodid": 3, 
+  "master_reference": "DIV-MASTER-20240601-002",
+  "investor_references": "DIV-INV-20240515-41258",  
+  "commission_references": "DIV-COM-20240515-A1-001"
+}
+```
 
 ## Endpoints implementados por ORM
 
