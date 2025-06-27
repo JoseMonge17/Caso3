@@ -418,27 +418,27 @@ VALUES
 -- Inversión 1: $150,000 por 9% equity
 (150000.00, '2024-05-20', 9.00, 
  (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
- CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_1')), 3, NULL, 1),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_1')), 3, NULL, 6),
 
 -- Inversión 2: $100,000 por 6% equity
 (100000.00, '2024-05-21', 6.00,
  (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
- CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_2')), 3, NULL, 2),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_2')), 3, NULL, 7),
 
 -- Inversión 3: $75,000 por 4.5% equity
 (75000.00, '2024-05-22', 4.50,
  (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
- CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_3')), 3, NULL, 3),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_3')), 3, NULL, 8),
 
 -- Inversión 4: $100,000 por 6% equity
 (100000.00, '2024-05-23', 6.00,
  (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
- CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_4')), 3, NULL, 4),
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_4')), 3, NULL, 9),
 
 -- Inversión 5: $75,000 por 4.5% equity
 (75000.00, '2024-05-24', 4.50,
  (SELECT statusid FROM cf_status_types WHERE name = 'Activo'),
- CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_5')), 3, NULL, 5);
+ CONVERT(VARBINARY(255), HASHBYTES('SHA2_256', 'Inversion_5')), 3, NULL, 10);
 
 -- Insertar acuerdos de inversión para el proyecto 3
 INSERT INTO cf_investment_agreements (
