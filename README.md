@@ -317,6 +317,267 @@ Este diseño garantiza que solo usuarios autenticados y autorizados puedan inter
 #### JSON de prueba 
 
 ```json
+{
+  "proposalid": 2,
+  "monto": 185000.00,
+  "codigoPago": "PMT-USDC-20240625-1025A",
+  "token": "ch_tok_26QCj2mJ7bP9H3xV5t8LkE4s",
+  "metodoPagoId": 2
+}
+```
+#### Caoa Handler (/functions/investHandler.js)
+
+```javascript
+const { procesarInversionSP } = require('../services/investService');
+
+module.exports.handler = async (event) => {
+  console.log("Iniciando handler de inversión");
+  // Obtener los datos del context  
+  const data = JSON.parse(event.requestContext.authorizer.data);
+
+  //obtener solamente los datos del usuario
+  const user = data.user;
+  try {
+    // llamar a la capa de service pasando el body y el usuario
+    const result = await procesarInversionSP(event.body, user);
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify({ // formato que se le retorna al cliente en caso de éxito
+        status: 'success',
+        data: result,
+        timestamp: new Date().toISOString()
+      })
+    };
+  } catch (err) {
+    // Determinar el código de estado adecuado
+    const statusCode = err.statusCode || 500;
+    const errorDetails = process.env.NODE_ENV === 'development' ? 
+      { 
+        message: err.message,
+        stack: err.stack,
+        ...(err.details && { details: err.details })
+      } : 
+      { message: err.message };
+    
+    return {
+      statusCode,
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Request-ID": event.requestContext?.requestId || 'unknown'
+      },
+      body: JSON.stringify({ // formato que se le retorna al cliente en caso de error
+        status: 'error',
+        error: statusCode === 400 ? 'Validación fallida' : 
+              statusCode === 401 ? 'No autorizado' : 
+              statusCode === 403 ? 'Acceso denegado' : 
+              'Error en el servidor',
+        ...errorDetails,
+        timestamp: new Date().toISOString()
+      })
+    };
+  }
+};
+```
+#### Capa Service (/services/investService.js)
+```javascript
+const { ejecutarInversionSP } = require('../data/investData');
+
+async function procesarInversionSP(body, user) {
+  // 1. Obtener userid del token
+  const userid = user.userid; 
+
+  // 2. Parsear y validar input
+  const input = typeof body === 'string' ? JSON.parse(body || '{}') : body;
+
+  // Validación robusta de parámetros requeridos
+  const requiredParams = ['proposalid', 'monto', 'codigoPago', 'token', 'metodoPagoId'];
+  const missingParams = requiredParams.filter(param => input[param] === undefined || input[param] === null);
+
+  if (missingParams.length > 0) { 
+    throw {
+      statusCode: 400,
+      message: {
+        errorMessage: `Parámetros requeridos faltantes: ${missingParams.join(', ')}`,
+        details: {
+          requiredParams,
+          receivedParams: Object.keys(input).filter(k => input[k] !== undefined)
+        }
+      }
+    };
+  }
+
+  // Validación detallada de cada parámetro
+  const validationErrors = [];
+
+  // Validar proposalid
+  const proposalId = parseInt(input.proposalid);
+  if (isNaN(proposalId) || !Number.isInteger(proposalId) || proposalId <= 0) {
+    validationErrors.push({
+      param: 'proposalid',
+      problem: 'Debe ser un entero positivo mayor que cero',
+      received: input.proposalid,
+      expectedType: 'positive integer'
+    });
+  }
+
+  // Validar monto
+  const monto = parseFloat(input.monto);
+  if (isNaN(monto) || monto <= 0) {
+    validationErrors.push({
+      param: 'monto',
+      problem: 'Debe ser un número positivo mayor que cero',
+      received: input.monto,
+      expectedType: 'positive number'
+    });
+  }
+
+  // Validar metodoPagoId
+  const metodoPagoId = parseInt(input.metodoPagoId);
+  if (isNaN(metodoPagoId)) {
+    validationErrors.push({
+      param: 'metodoPagoId',
+      problem: 'No es un número válido',
+      received: input.metodoPagoId,
+      expectedType: 'integer'
+    });
+  } else if (!Number.isInteger(metodoPagoId) || metodoPagoId <= 0) {
+    validationErrors.push({
+      param: 'metodoPagoId',
+      problem: 'Debe ser un entero positivo mayor que cero',
+      received: input.metodoPagoId,
+      expectedType: 'positive integer'
+    });
+  }
+
+  // Validar codigoPago
+  if (typeof input.codigoPago !== 'string' || input.codigoPago.trim().length === 0) {
+    validationErrors.push({
+      param: 'codigoPago',
+      problem: 'Debe ser una cadena de texto no vacía',
+      received: input.codigoPago,
+      expectedType: 'non-empty string'
+    });
+  }
+
+  // Validar token
+  if (typeof input.token !== 'string' || input.token.trim().length === 0) {
+    validationErrors.push({
+      param: 'token',
+      problem: 'Debe ser una cadena de texto no vacía',
+      received: input.token,
+      expectedType: 'non-empty string'
+    });
+  }
+
+  // Si hay errores de validación, lanzar excepción con mensaje con detalles 
+  if (validationErrors.length > 0) {
+    throw {
+      statusCode: 400,
+      message: { 
+        errorMessage : 'Validación fallida para uno o más parámetros', 
+        details: {
+          validationErrors,
+          receivedInput: input
+        }
+      }
+    };
+  }
+
+  // 3. Preparar parámetros para el SP
+  const params = {
+    proposalid: proposalId,
+    monto: monto,
+    codigoPago: input.codigoPago.trim(),
+    token: input.token.trim(),
+    metodoPagoId: metodoPagoId,
+    userid // Añadimos el userid obtenido del token
+  };
+
+  return await ejecutarInversionSP(params);
+}
+
+module.exports = { procesarInversionSP };
+```
+
+#### Capa Data (/data/investData.js)
+
+```javascript
+const { executeSP, sql } = require('../db/config');
+
+async function ejecutarInversionSP(params) {
+  // Mapeo de parámetros al SP
+  const spParams = {
+    proposalid: params.proposalid,
+    userid: params.userid,
+    monto: params.monto, 
+    codigoPago: params.codigoPago,
+    token: params.token,
+    metodoPagoId: params.metodoPagoId
+  };
+
+  // Configuración de tipos SQL
+  const typesConfig = {
+    proposalid: sql.Int,
+    userid: sql.Int,
+    monto: sql.Float, 
+    codigoPago: sql.NVarChar(100),
+    token: sql.NVarChar(200),
+    metodoPagoId: sql.Int
+  };
+
+  try {
+    const result = await executeSP('SP_CF_ProcesarInversion', spParams, typesConfig);
+    
+    // Formatear respuesta para el cliente
+    return {
+      success: true,
+      investmentData: {
+        investmentId: result[0]?.investmentid, // id de la inversión
+        equityPercentage: result[0]?.equityPercentage, // porcentaje accionario sobre el proyecto asignado
+        amountInvested: parseFloat(params.monto), // monto que invirtió 
+        newTotalInvested: result[0]?.newTotalInvested // el total invertido en el proyecto luego de la inversión
+      },
+      metadata: {
+        projectId: params.proposalid,
+        investorId: params.userid,
+        executedAt: new Date().toISOString()
+      }
+    };
+    
+  } catch (error) {
+    console.error('Error en investData:', error.message);
+    throw new Error(`Error en Inversión: ${error.message}`);
+  }
+}
+
+module.exports = { ejecutarInversionSP };
+```
+
+En esta capa se llama al SP correspondiente ejecutando una función que está almacenada en (db/config.js)
+```javascript
+async function executeSP(spName, params = {}, typesConfig = {}) {
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+
+    Object.entries(params).forEach(([key, value]) => {
+      // Usa configuración explícita o determina el tipo
+      const type = typesConfig[key] || determineType(key, value);
+      request.input(key, type, value);
+    });
+
+    const result = await request.execute(spName);
+    return result.recordset;
+  } catch (err) {
+    console.error(`Error en SP ${spName}:`, err);
+    throw err;
+  }
+}
+```
+
+#### Store Procedure Invertir
+```sql
 
 ```
 
@@ -329,11 +590,238 @@ Este diseño garantiza que solo usuarios autenticados y autorizados puedan inter
   "project_id": 3,
   "finance_report_id": 1,
   "payment_methodid": 3, 
-  "master_reference": "DIV-MASTER-20240601-002",
-  "investor_references": "DIV-INV-20240515-41258",  
-  "commission_references": "DIV-COM-20240515-A1-001"
 }
 ```
+
+#### Capa Handler (/functions/distributeDividends.js)
+
+```javascript
+const { procesarDividendosSP } = require('../services/distributeDividendsService');
+
+module.exports.handler = async (event) => {
+  console.log("ya llegue al distribute");
+  // Obtener los datos del context 
+  const data = JSON.parse(event.requestContext.authorizer.data);
+  //obtener solamente los datos del usuario
+  const user = data.user;
+  try {
+    // llamar a la capa de service pasando el body y el usuario
+    const result = await procesarDividendosSP(event.body, user);
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ // formato que se le retorna al cliente en caso de éxito
+        status: 'success',
+        data: result,
+        timestamp: new Date().toISOString()
+      })
+    };
+  } catch (err) {
+    // Determinar el código de estado adecuado
+    const statusCode = err.statusCode || 500;
+    const errorDetails = process.env.NODE_ENV === 'development' ? 
+      { 
+        message: err.message,
+        stack: err.stack,
+        ...(err.details && { details: err.details })
+      } : 
+      { message: err.message };
+    
+    return {
+      statusCode,
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Request-ID": event.requestContext?.requestId || 'unknown'
+      },
+      body: JSON.stringify({ // formato que se le retorna al cliente en caso de error
+        status: 'error',
+        error: statusCode === 400 ? 'Validación fallida' : 
+              statusCode === 401 ? 'No autorizado' : 
+              statusCode === 403 ? 'Acceso denegado' : 
+              'Error en el servidor',
+        ...errorDetails,
+        timestamp: new Date().toISOString()
+      })
+    };
+  }
+};
+```
+
+#### Capa Service (/services/distributeDividendsService.js)
+
+```javascript
+const { distributeDividends } = require('../data/distributeDividendsData');
+
+async function procesarDividendosSP(body, user) {
+  // 1. Obtener userid del token
+  const userid = user.userid; 
+
+  // 2. Parsear y validar input TODO: Todas las entradas correctas
+  const input = JSON.parse(body || '{}');
+   // Validación básica de parámetros requeridos
+
+   // Validación robusta de parámetros requeridos
+  const requiredParams = ['project_id', 'finance_report_id', 'payment_methodid'];
+  const missingParams = requiredParams.filter(param => input[param] === undefined || input[param] === null);
+
+  if (missingParams.length > 0) { 
+    throw {
+      statusCode: 400,
+      message: {
+        errorMessage: `Parámetros requeridos faltantes: ${missingParams.join(', ')}`,
+        details: {
+          requiredParams,
+          receivedParams: Object.keys(input).filter(k => input[k] !== undefined)
+        }
+      }
+    };
+  }
+
+  // Validación detallada de cada parámetro
+  const validationErrors = [];
+
+  // Validar id del proyecto dado
+  const project_id = parseInt(input.project_id);
+  if (isNaN(project_id) || !Number.isInteger(project_id) || project_id <= 0) {
+    validationErrors.push({
+      param: 'project_id',
+      problem: 'Debe ser un entero positivo mayor que cero',
+      received: input.project_id,
+      expectedType: 'positive integer'
+    });
+  }
+
+  // Validar id del reporte financiero 
+  const finance_report_id = parseInt(input.finance_report_id);
+  if (isNaN(finance_report_id) || !Number.isInteger(finance_report_id) || finance_report_id <= 0) {
+    validationErrors.push({
+      param: 'finance_report_id',
+      problem: 'Debe ser un entero positivo mayor que cero',
+      received: input.finance_report_id,
+      expectedType: 'positive integer'
+    });
+  }
+
+  // Validar el método de pago
+  const payment_methodid = parseInt(input.payment_methodid);
+  if (isNaN(payment_methodid)) {
+    validationErrors.push({
+      param: 'payment_methodid',
+      problem: 'No es un número válido',
+      received: input.payment_methodid,
+      expectedType: 'integer'
+    });
+  } else if (!Number.isInteger(payment_methodid) || payment_methodid <= 0) {
+    validationErrors.push({
+      param: 'payment_methodid',
+      problem: 'Debe ser un entero positivo mayor que cero',
+      received: input.payment_methodid,
+      expectedType: 'positive integer'
+    });
+  }
+
+  // Si hay errores de validación, lanzar excepción con mensaje con detalles 
+  if (validationErrors.length > 0) {
+    throw {
+      statusCode: 400,
+      message: { 
+        errorMessage : 'Validación fallida para uno o más parámetros', 
+        details: {
+          validationErrors,
+          receivedInput: input
+        }
+      }
+    };
+  }
+
+  // 3. Inyectar userid en los parámetros
+  const params = {
+    ...input,
+    userid // Añadimos el userid obtenido del token
+  };
+
+  return await distributeDividends(params);
+}
+
+module.exports = { procesarDividendosSP };
+```
+
+#### Capa Data (/data/distributeDividendsData.js)
+
+```javascript
+const { executeSP, sql } = require('../db/config');
+
+async function distributeDividends(params) {
+    // Mapeo de parámetros del JSON a los del SP
+    const spParams = {
+        projectId: params.project_id,
+        ReporteGananciasID: params.finance_report_id,
+        UsuarioEjecutor: params.userid,
+        PayMethodId: params.payment_methodid
+    };
+
+    // Configuración de tipos para executeSP
+    const typesConfig = {
+        projectId: sql.Int,
+        ReporteGananciasID: sql.Int,
+        UsuarioEjecutor: sql.Int,
+        PayMethodId: sql.Int
+    };
+
+    try {
+        const result = await executeSP('SP_RepartirDividendos', spParams, typesConfig);
+    
+    // Formatear respuesta para el cliente
+    return {
+      success: true,
+      transactionId: result[0]?.TransactionID,
+      amounts: {
+        total: result[0]?.TotalGanancias, // total de las ganancias
+        fees: result[0]?.ComisionesAplicadas, // comisiones aplicadas
+        distributed: result[0]?.DistribuidoInversionistas // fondos distribuidos entre inversionistas 
+      },
+      metadata: {
+        projectId: params.project_id,
+        executedBy: params.userid
+      }
+    };
+  } catch (error) {
+    console.error('Error en distributeDividends:', error.message);
+    throw new Error(`Error financiero: ${error.message}`);
+  }
+}
+
+module.exports = { distributeDividends };
+```
+
+En esta capa se llama al SP correspondiente ejecutando una función que está almacenada en (db/config.js)
+
+```javascript
+async function executeSP(spName, params = {}, typesConfig = {}) {
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+
+    Object.entries(params).forEach(([key, value]) => {
+      // Usa configuración explícita o determina el tipo
+      const type = typesConfig[key] || determineType(key, value);
+      request.input(key, type, value);
+    });
+
+    const result = await request.execute(spName);
+    return result.recordset;
+  } catch (err) {
+    console.error(`Error en SP ${spName}:`, err);
+    throw err;
+  }
+}
+```
+
+#### Store Procedure Repartir Dividendos
+```sql
+
+```
+
 
 ## Endpoints implementados por ORM
 
