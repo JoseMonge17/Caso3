@@ -1,0 +1,30 @@
+# Plantilla de configuración Flyway - Reemplazar variables con tus credenciales
+# ------------------------------------------------------------
+
+# Configuración básica
+flyway.databaseType=SqlServer
+flyway.defaultSchema=dbo
+flyway.locations=filesystem:migrations
+flyway.mixed=true
+flyway.outOfOrder=true
+flyway.validateMigrationNaming=true
+
+# Limpieza de BD (opcional)
+flyway.sqlserver.clean.mode=all
+
+# Validación de versiones (opcional)
+flyway.check.majorTolerance=0
+
+# ------------------------------------------------------------
+# CONFIGURACIÓN DE CONEXIÓN (EDITAR POR CADA USUARIO)
+# ------------------------------------------------------------
+
+# Ejemplo con Windows Authentication (trusted_connection)
+flyway.url=jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${DB_NAME};encrypt=${ENCRYPT};integratedSecurity=true;trustServerCertificate=true
+# mi conexión: 
+flyway.url=jdbc:sqlserver://localhost:1433;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true
+
+
+# Si usas autenticación SQL Server (no Windows), descomenta:
+# flyway.user=${DB_USER}
+# flyway.password=${DB_PASSWORD}

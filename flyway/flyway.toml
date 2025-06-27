@@ -3,11 +3,11 @@ id = "0ee0ec1a-606f-41d1-9475-1ec54eb682be"
 name = "flyway"
 
 [environments.VotoPuraVida]
-url = "jdbc:sqlserver://localhost:1434;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
+url = "jdbc:sqlserver://localhost:1433;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
 
 [environments.development]
 displayName = "Development database"
-url = "jdbc:sqlserver://localhost:1434;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
+url = "jdbc:sqlserver://localhost:1433;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
 
 [flyway]
 defaultSchema = "dbo"
@@ -124,7 +124,3 @@ ignoreWhiteSpace = true
 ignoreWithElementOrder = true
 ignoreWithEncryption = false
 ignoreWithNoCheck = true
-
-
-[environments.VotoPuraVida]
-url = "jdbc:sqlserver://localhost:1434;databaseName=VotoPuraVida;encrypt=false;integratedSecurity=true;trustServerCertificate=true"
