@@ -19,8 +19,7 @@ module.exports.handler = async (event) =>
             body: JSON.stringify(result)
         };
 
-    } catch (error) 
-    {
+    } catch (error) {
         // Retorno en caso de error de la API para mostrar en la aplicación o en este caso el Postman
         return {
             statusCode: 400,

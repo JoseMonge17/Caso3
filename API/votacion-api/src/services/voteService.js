@@ -20,7 +20,7 @@ async function vote(data, body)
 
     if(!result.success) throw new Error(result.error);
 
-    if(!body.livenessCheck.result) throw new Error("Identidad no confirmada")
+    if(!body.livenessCheck.result) throw new Error("Proceso de prueba de vida rechazado")
 
     // Confirmar existencia activa del ciudadano en el sistema
     if (!user) throw new Error('Usuario no encontrado');
@@ -31,7 +31,7 @@ async function vote(data, body)
     //Verificar si el usuario está habilitado para votar en esa propuesta según su perfil
     //      Validar que se envio una sesion de votos
     const sessionid = body.sessionid;
-    if (!sessionid) throw new Error('No envió votación');
+    if (!sessionid) throw new Error('No se envió una sesión de votos');
 
     // Funcion sencilla que se trae la session de votos por medio del PK
     const session = await getSessionById(sessionid);
@@ -48,7 +48,7 @@ async function vote(data, body)
     const record = await hasUserVoted(user.userid, sessionid);
     if (record) //Si el usuario está en lista directa o tiene un registro de voto, verifica si ya votó, si tiene un registro y no voto es que está en lista directa
     {
-        if(record.voted) throw new Error('El usuario ya ha votado en esta sesión');
+        if(record.voted) throw new Error('El usuario ya votó para esta propuesta');
 
         maxWeight = 1;
     }
@@ -218,7 +218,7 @@ async function vote(data, body)
         });
         
         return {
-            success: result,
+            mensaje: "Voto realizado correctamente",
             propuesta,
             fecha: new Date().toLocaleString('es-CR', {
                 day: '2-digit',

@@ -238,108 +238,125 @@ async function getSession(proposalid)
 
 async function createSession({startDate, endDate, voteTypeid, sessionStatusid, visibilityid}, proposalid, transaction) 
 {
-    const randomString = crypto.randomBytes(16).toString('hex');
+    try 
+    {
+        //Crea un string random para la public_key
+        const randomString = crypto.randomBytes(16).toString('hex');
 
-    const public_key = Buffer.from(randomString, 'utf8');
+        const public_key = Buffer.from(randomString, 'utf8');
 
-    // Crear sesión de votos
-    const session = await VoteSession.create({
-        startDate,
-        endDate,
-        public_key,
-        sessionStatusid,
-        voteTypeid,
-        visibilityid
-    }, { transaction });
+        // Crear sesión de votos
+        const session = await VoteSession.create({
+            startDate,
+            endDate,
+            public_key,
+            sessionStatusid,
+            voteTypeid,
+            visibilityid
+        }, { transaction });
 
-    await CfProposalVote.create(
-        {
-            date: new Date(),
-            result: 0,
-            sessionid: session.sessionid,
-            proposalid
-        }, { transaction }
-    );
+        await CfProposalVote.create(
+            {
+                date: new Date(),
+                result: 0,
+                sessionid: session.sessionid,
+                proposalid
+            }, { transaction }
+        );
 
-    return session
+        return session
+    } catch (error) {
+        throw new Error("Error en crear la sesión de votos: " + error.message);
+    }
 }
 
 async function configureQuestions(sessionid, questions, transaction) 
 {
-    const now = new Date();
-
-    for (const q of questions) 
+    try 
     {
-        let question = q
-        if(q.questionid)
-        {
-            await VoteQuestion.update({
-                description: q.description,
-                required: !!q.required,
-                max_answers: q.max_answers,
-                updateDate: now,
-                question_typeid: q.question_typeid
-            }, 
-            { 
-                where:
-                { 
-                    sessionid,
-                    questionid: q.questionid
-                },
-                transaction
-            });
-        }
-        else
-        {
-            question = await VoteQuestion.create({
-                description: q.description,
-                required: !!q.required,
-                max_answers: q.max_answers,
-                createDate: now,
-                updateDate: null,
-                question_typeid: q.question_typeid,
-                sessionid
-            }, { transaction });
-        }
+        const now = new Date();
 
-        for (const opt of q.options) 
+        // Recorre todas las preguntas proporcionadas
+        for (const q of questions) 
         {
-            const raw = `${opt.description}-${opt.value}-${opt.order}`;
-            const checksum = crypto.createHash('sha256').update(raw).digest();
+            let question = q
 
-            if(opt.optionid)
+            // Si la pregunta ya existe se actualiza
+            if(q.questionid)
             {
-                await VoteOption.update({
-                    description: opt.description,
-                    value: opt.value,
-                    url: opt.url,
-                    order: opt.order,
-                    checksum: checksum,
-                    updateDate: now
+                await VoteQuestion.update({
+                    description: q.description,
+                    required: !!q.required,
+                    max_answers: q.max_answers,
+                    updateDate: now,
+                    question_typeid: q.question_typeid
                 }, 
                 { 
                     where:
-                    {
-                        questionid: question.questionid,
-                        optionid: opt.optionid
+                    { 
+                        sessionid,
+                        questionid: q.questionid
                     },
                     transaction
                 });
             }
-            else
+            else // Si la pregunta no existe aún se crea
             {
-                await VoteOption.create({
-                    description: opt.description,
-                    value: opt.value,
-                    url: opt.url,
-                    order: opt.order,
-                    checksum: checksum,
+                question = await VoteQuestion.create({
+                    description: q.description,
+                    required: !!q.required,
+                    max_answers: q.max_answers,
                     createDate: now,
                     updateDate: null,
-                    questionid: question.questionid
+                    question_typeid: q.question_typeid,
+                    sessionid
                 }, { transaction });
             }
+
+            // Luego procesa sus opciones de respuesta
+            for (const opt of q.options) 
+            {
+                 // Se genera un checksum basado en los datos principales de la opción
+                const raw = `${opt.description}-${opt.value}-${opt.order}`;
+                const checksum = crypto.createHash('sha256').update(raw).digest();
+
+                // Si la opción ya existe se actualiza
+                if(opt.optionid)
+                {
+                    await VoteOption.update({
+                        description: opt.description,
+                        value: opt.value,
+                        url: opt.url,
+                        order: opt.order,
+                        checksum: checksum,
+                        updateDate: now
+                    }, 
+                    { 
+                        where:
+                        {
+                            questionid: question.questionid,
+                            optionid: opt.optionid
+                        },
+                        transaction
+                    });
+                }
+                else // Si la opción no existe aún se crea
+                {
+                    await VoteOption.create({
+                        description: opt.description,
+                        value: opt.value,
+                        url: opt.url,
+                        order: opt.order,
+                        checksum: checksum,
+                        createDate: now,
+                        updateDate: null,
+                        questionid: question.questionid
+                    }, { transaction });
+                }
+            }
         }
+    } catch (error) {
+        throw new Error("Error en configurar las preguntas y respuestas: " + error.message);
     }
 }
 
@@ -347,6 +364,7 @@ async function searchCriterias(criterias)
 {
     for (const criterio of criterias) 
     {
+        // Busca un registro en la tabla VpvDemographicData que coincida con el código y valor del criterio
         const resultado = await VpvDemographicData.findOne({
             where: {
                 code: criterio.code,
@@ -354,16 +372,20 @@ async function searchCriterias(criterias)
             }
         });
 
+        // Extrae el ID demográfico del resultado encontrado
         let demographicid = resultado.demographicid
 
+        // Lo asigna al objeto criterio actual para mantener la relación
         criterio.demographicid = demographicid;
 
+        // Busca en la tabla VoteCriteria si ya existe un criterio vinculado a ese demographicid
         let criteria = await VoteCriteria.findOne(
         {
             where: { demographicid },
             attributes: ['criteriaid']
         });
 
+        // Si no existe ese criterio, lo crea
         if (!criteria) 
         {
             criteria = await VoteCriteria.create({
@@ -373,9 +395,11 @@ async function searchCriterias(criterias)
             });
         }
 
+        // Asocia el ID del criterio al objeto original
         criterio.criteriaid = criteria.criteriaid;
     }
 
+    // Devuelve el arreglo de criterios actualizado, con demographicid y criteriaid agregados
     return criterias;
 }
 
@@ -400,178 +424,215 @@ async function updateSession(session, transaction)
 
 async function configureCriterias(sessionid, criterios, transaction) 
 {
-    for (const criterio of criterios) 
+    try 
     {
-        const existing = await VotingRule.findOne({
-            where: {
-                sessionid,
-                criteriaid: criterio.criteriaid
-            }, transaction
-        });
-        if(existing)
+        // Recorre todos los criterios enviados
+        for (const criterio of criterios) 
         {
-            await VotingRule.update(
-            {
-                value: criterio.value,
-                weight: parseFloat(criterio.weigth),
-                enabled: true
-            },
-            {
-                where: 
-                {
+            // Verifica si ya existe una regla de votación para este criterio en la sesión dada
+            const existing = await VotingRule.findOne({
+                where: {
                     sessionid,
                     criteriaid: criterio.criteriaid
-                },
-                transaction
+                }, transaction
             });
-        }
-        else
-        {
-            await VotingRule.create(
+
+            // Si la regla ya existe, la actualiza
+            if(existing)
             {
-                value: criterio.value,
-                weight: parseFloat(criterio.weigth),
-                enabled: true,
-                sessionid,
-                criteriaid: criterio.criteriaid
-            }, { transaction });
+                await VotingRule.update(
+                {
+                    value: criterio.value,
+                    weight: parseFloat(criterio.weigth),
+                    enabled: true
+                },
+                {
+                    where: 
+                    {
+                        sessionid,
+                        criteriaid: criterio.criteriaid
+                    },
+                    transaction
+                });
+            }
+            else // Si no existe, la crea desde cero
+            {
+                await VotingRule.create(
+                {
+                    value: criterio.value,
+                    weight: parseFloat(criterio.weigth),
+                    enabled: true,
+                    sessionid,
+                    criteriaid: criterio.criteriaid
+                }, { transaction });
+            }
         }
+    } catch (error) {
+        throw new Error("Error en configurar criterios: " + error.message);
     }
 }
 
 async function configureRules(sessionid, rules, transaction) 
 {
-    for (const rule of rules) 
+    try 
     {
-        const ruleType = await VoteRule.findOne({
-            where: { name: rule.rule }
-        });
-
-        const existing = await VoteAcceptanceRule.findOne({
-            where: {
-                sessionid,
-                rule_typeid: ruleType.ruleid
-            }, transaction
-        });
-        if(existing)
+        // Recorre todas las reglas enviadas
+        for (const rule of rules) 
         {
-            await VoteAcceptanceRule.update(
-            {
-                quantity: rule.value,
-                description: ruleType.name + " " + rule.value,
-                enabled: true
-            },
-            {
-                where: 
-                {
+            //Busca el tipo de regla que se va a aplicar
+            const ruleType = await VoteRule.findOne({
+                where: { name: rule.rule }
+            });
+
+            // Busca si ya existe una regla de aceptación configurada para esta sesión y tipo de regla
+            const existing = await VoteAcceptanceRule.findOne({
+                where: {
                     sessionid,
                     rule_typeid: ruleType.ruleid
-                },
-                transaction
+                }, transaction
             });
-        }
-        else
-        {
-            await VoteAcceptanceRule.create(
+
+            // Si ya existe la regla, se actualiza con los nuevos valores
+            if(existing)
             {
-                quantity: rule.value,
-                description: ruleType.name + " " + rule.value,
-                enabled: true,
-                sessionid,
-                rule_typeid: ruleType.ruleid
-            }, { transaction });
+                await VoteAcceptanceRule.update(
+                {
+                    quantity: rule.value,
+                    description: ruleType.name + " " + rule.value,
+                    enabled: true
+                },
+                {
+                    where: 
+                    {
+                        sessionid,
+                        rule_typeid: ruleType.ruleid
+                    },
+                    transaction
+                });
+            }
+            else // Si no existe, se crea una nueva entrada con los valores especificados
+            {
+                await VoteAcceptanceRule.create(
+                {
+                    quantity: rule.value,
+                    description: ruleType.name + " " + rule.value,
+                    enabled: true,
+                    sessionid,
+                    rule_typeid: ruleType.ruleid
+                }, { transaction });
+            }
         }
+    } catch (error) {
+        throw new Error("Error en configurar las reglas de la sesión de votos: " + error.message);
     }
 }
 
 async function uploadRestrictedIPs (sessionid, restrictedIPs, transaction)
 {
-    for (const ip of restrictedIPs) 
+    try 
     {
-        let whitelist = await VpvWhitelist.findOne({
-            where: { 
-                initial_IP: ip.initial_IP, 
-                end_IP: ip.end_IP, 
-                countryid: ip.countryid 
-            },
-            transaction
-        });
-
-        if (!whitelist) 
+        // Recorre cada objeto de whitelist en el arreglo recibido
+        for (const ip of restrictedIPs) 
         {
-            whitelist = await VpvWhitelist.create({
-                initial_IP: ip.initial_IP,
-                end_IP: ip.end_IP,
-                countryid: ip.countryid,
-                allowed: true
-            }, { transaction });
-        }
+            // Verifica si ya existe un rango de IPs en la whitelist con el mismo rango y país
+            let whitelist = await VpvWhitelist.findOne({
+                where: { 
+                    initial_IP: ip.initial_IP, 
+                    end_IP: ip.end_IP, 
+                    countryid: ip.countryid 
+                },
+                transaction
+            });
 
-        const restriction = await VoteSessionIpPermission.findOne({
-            where: { 
-                sessionid,
-                whitelistid: whitelist.whitelistid
-            },
-            transaction
-        });
+            // Si no existe, lo crea en la tabla de whitelist
+            if (!whitelist) 
+            {
+                whitelist = await VpvWhitelist.create({
+                    initial_IP: ip.initial_IP,
+                    end_IP: ip.end_IP,
+                    countryid: ip.countryid,
+                    allowed: true
+                }, { transaction });
+            }
 
-        if(restriction)
-        {
-            await VoteSessionIpPermission.update(
-            {
-                allowed: ip.allowed,
-            },
-            {
-                where: 
-                {
+            // Verifica si ya existe una regla de restricción para esta sesión y este whitelistid
+            const restriction = await VoteSessionIpPermission.findOne({
+                where: { 
                     sessionid,
                     whitelistid: whitelist.whitelistid
                 },
                 transaction
             });
+
+            // Si ya existe, la actualiza con el nuevo valor
+            if(restriction)
+            {
+                await VoteSessionIpPermission.update(
+                {
+                    allowed: ip.allowed,
+                },
+                {
+                    where: 
+                    {
+                        sessionid,
+                        whitelistid: whitelist.whitelistid
+                    },
+                    transaction
+                });
+            }
+            else // Si no existe, crea una nueva restricción IP para esta sesión
+            {
+                await VoteSessionIpPermission.create({
+                    sessionid,
+                    whitelistid: whitelist.whitelistid,
+                    allowed: ip.allowed,
+                    created_date: new Date(),
+                }, { transaction });
+            }
         }
-        else
-        {
-            await VoteSessionIpPermission.create({
-                sessionid,
-                whitelistid: whitelist.whitelistid,
-                allowed: ip.allowed,
-                created_date: new Date(),
-            }, { transaction });
-        }
+    } catch (error) {
+        throw new Error("Error en configurar la restricción de IPs: " + error.message);
     }
 };
 
 async function uploadRestrictedTimes (sessionid, schedules, transaction)
 {
-    for (const schedule of schedules) 
+    try 
     {
-        let existingRestriction = await VoteSessionTimeRestriction.findOne({
-            where: {
-                sessionid,
-                day_of_week: schedule.day_of_week
-            },
-            transaction
-        });
-
-        if (existingRestriction) 
+        // Recorre cada horario dentro del arreglo
+        for (const schedule of schedules) 
         {
-            existingRestriction.start_time = schedule.start_time;
-            existingRestriction.end_time = schedule.end_time;
-            existingRestriction.allowed = schedule.allowed;
+            // Busca si ya existe una restricción horaria para el mismo día de la semana en esa sesión
+            let existingRestriction = await VoteSessionTimeRestriction.findOne({
+                where: {
+                    sessionid,
+                    day_of_week: schedule.day_of_week
+                },
+                transaction
+            });
 
-            await existingRestriction.save({ transaction });
-        } 
-        else 
-        {
-            await VoteSessionTimeRestriction.create({
-                sessionid,
-                start_time: schedule.start_time,
-                end_time: schedule.end_time,
-                day_of_week: schedule.day_of_week,
-                allowed: schedule.allowed
-            }, { transaction });
+            // Si ya existe una restricción para ese día, se actualiza con los nuevos valores
+            if (existingRestriction) 
+            {
+                existingRestriction.start_time = schedule.start_time;
+                existingRestriction.end_time = schedule.end_time;
+                existingRestriction.allowed = schedule.allowed;
+
+                await existingRestriction.save({ transaction });
+            } 
+            else // Si no existe, se crea una nueva restricción horaria para ese día
+            {
+                await VoteSessionTimeRestriction.create({
+                    sessionid,
+                    start_time: schedule.start_time,
+                    end_time: schedule.end_time,
+                    day_of_week: schedule.day_of_week,
+                    allowed: schedule.allowed
+                }, { transaction });
+            }
         }
+    } catch (error) {
+        throw new Error("Error en configurar los horarios de votación: " + error.message);
     }
 };
 
@@ -640,57 +701,74 @@ async function getCountriesByUserId (userid)
 
 async function uploadImpactZones(proposalid, impactZoneData, transaction) 
 {
-    for (const item of impactZoneData) 
+    try 
     {
-        let impactZone = await VpvImpactZone.findOne({
-            where: {
-                name: item.zone
-            },
-            transaction
-        });
-
-        if (!impactZone) 
+        // Recorre cada elemento del arreglo de zonas de impacto
+        for (const item of impactZoneData) 
         {
-            impactZone = await VpvImpactZone.create({
-                name: item.zone,
-                zone_typeid: item.zone_typeid
-            }, { transaction });
+            // Busca si ya existe una zona de impacto con el mismo nombre
+            let impactZone = await VpvImpactZone.findOne({
+                where: {
+                    name: item.zone
+                },
+                transaction
+            });
+
+            // Si la zona no existe, la crea con su tipo
+            if (!impactZone) 
+            {
+                impactZone = await VpvImpactZone.create({
+                    name: item.zone,
+                    zone_typeid: item.zone_typeid
+                }, { transaction });
+            }
+
+            // Verifica si ya existe una relación entre la propuesta y la zona
+            const existing = await VpvProposalImpactZone.findOne({
+                where: {
+                    proposalid,
+                    zoneid: impactZone.zoneid
+                },
+                transaction
+            });
+
+            // Si ya existe la relación, actualiza el nivel de impacto y la descripción
+            if (existing) 
+            {
+                await existing.update({
+                    impact_levelid: item.impact_levelid,
+                    description: item.description
+                }, { transaction });
+            } 
+            else // Si no existe la relación, la crea desde cero
+            {
+                await VpvProposalImpactZone.create({
+                    proposalid,
+                    zoneid: impactZone.zoneid,
+                    impact_levelid: item.impact_levelid,
+                    description: item.description
+                }, { transaction});
+            }
         }
-
-        const existing = await VpvProposalImpactZone.findOne({
-            where: {
-                proposalid,
-                zoneid: impactZone.zoneid
-            },
-            transaction
-        });
-
-        if (existing) 
-        {
-            await existing.update({
-                impact_levelid: item.impact_levelid,
-                description: item.description
-            }, { transaction });
-        } 
-        else 
-        {
-            await VpvProposalImpactZone.create({
-                proposalid,
-                zoneid: impactZone.zoneid,
-                impact_levelid: item.impact_levelid,
-                description: item.description
-            }, { transaction});
-        }
+    } catch (error) {
+        throw new Error("Error en configurar las zonas de impacto de las propuestas: " + error.message);
     }
 }
 
 async function uploadDirectList (sessionid, directList, transaction)
 {
-    const promises = directList.map(async (userid) => {
-        return createEligibility(userid, sessionid, transaction);
-    });
+    try 
+    {
+        // Mapea cada userid de la lista directa a una llamada a la función de crear un registro de elegibilidad
+        const promises = directList.map(async (userid) => {
+            return createEligibility(userid, sessionid, transaction);
+        });
 
-    await Promise.all(promises);
+        // Espera a que todas las elegibilidades sean creadas en paralelo
+        await Promise.all(promises);
+    } catch (error) {
+        throw new Error("Error en configurar la lista directa de votantes: " + error.message);
+    }
 };
 
 module.exports = 

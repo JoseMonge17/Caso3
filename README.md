@@ -69,10 +69,13 @@ Fecha de entrega: 28 de junio de 2025
 http://localhost:3000/dev/api/vote
 
 #### JSON de prueba
+
+JSON de prueba 1
 ```json
 {
     "methodid": "1",
     "codeMFA": "123456",
+    "IP": "190.35.255.1",
     "livenessCheck": 
     {
         "check_type": "Facial Recognition",
@@ -86,37 +89,37 @@ http://localhost:3000/dev/api/vote
     "biometricMedia": 
     [
         {
-        "filename": "selfie_front.jpg",
-        "storage_url": "https://example.com/uploads/selfie_front.jpg",
-        "file_size": 245000,
-        "uploaddate": "2025-06-15T14:00:05",
-        "hashvalue": "aabbccddeeff00112233445566778899",
-        "encryption_key_id": "key1",
-        "is_original": true,
-        "biotypeid": 1,
-        "mediatypeid": 1
+            "filename": "selfie_front.jpg",
+            "storage_url": "https://example.com/uploads/selfie_front.jpg",
+            "file_size": 245000,
+            "uploaddate": "2025-06-15T14:00:05",
+            "hashvalue": "aabbccddeeff00112233445566778899",
+            "encryption_key_id": "key1",
+            "is_original": true,
+            "biotypeid": 1,
+            "mediatypeid": 1
         },
         {
-        "filename": "selfie_left.jpg",
-        "storage_url": "https://example.com/uploads/selfie_left.jpg",
-        "file_size": 235000,
-        "uploaddate": "2025-06-15T14:00:06",
-        "hashvalue": "112233445566778899aabbccddeeff00",
-        "encryption_key_id": "key2",
-        "is_original": false,
-        "biotypeid": 1,
-        "mediatypeid": 1
+            "filename": "selfie_left.jpg",
+            "storage_url": "https://example.com/uploads/selfie_left.jpg",
+            "file_size": 235000,
+            "uploaddate": "2025-06-15T14:00:06",
+            "hashvalue": "112233445566778899aabbccddeeff00",
+            "encryption_key_id": "key2",
+            "is_original": false,
+            "biotypeid": 1,
+            "mediatypeid": 1
         },
         {
-        "filename": "selfie_right.jpg",
-        "storage_url": "https://example.com/uploads/selfie_right.jpg",
-        "file_size": 228000,
-        "uploaddate": "2025-06-15T14:00:07",
-        "hashvalue": "ffeeddccbbaa99887766554433221100",
-        "encryption_key_id": "key3",
-        "is_original": false,
-        "biotypeid": 1,
-        "mediatypeid": 1
+            "filename": "selfie_right.jpg",
+            "storage_url": "https://example.com/uploads/selfie_right.jpg",
+            "file_size": 228000,
+            "uploaddate": "2025-06-15T14:00:07",
+            "hashvalue": "ffeeddccbbaa99887766554433221100",
+            "encryption_key_id": "key3",
+            "is_original": false,
+            "biotypeid": 1,
+            "mediatypeid": 1
         }
     ],
     "sessionid": 1,
@@ -130,6 +133,79 @@ http://localhost:3000/dev/api/vote
             {
                 "questionid": 1,
                 "optionsid": [1]
+            }
+        ]
+    }
+}
+```
+
+JSON de prueba 2
+```json
+{
+    "methodid": "1",
+    "codeMFA": "123456",
+    "IP": "190.35.255.1",
+    "livenessCheck": 
+    {
+        "check_type": "Facial Recognition",
+        "check_date": "2025-06-15T14:00:00",
+        "result": true,
+        "confidence_score": 97.25,
+        "algorithm_used": "FaceNet v3",
+        "device_info": "Pixel 6 - Android 13",
+        "requestid": 2
+    },
+    "biometricMedia": 
+    [
+        {
+            "filename": "selfie_front.jpg",
+            "storage_url": "https://example.com/uploads/selfie_front.jpg",
+            "file_size": 245000,
+            "uploaddate": "2025-06-15T14:00:05",
+            "hashvalue": "aabbccddeeff00112233445566778899",
+            "encryption_key_id": "key1",
+            "is_original": true,
+            "biotypeid": 1,
+            "mediatypeid": 1
+        },
+        {
+            "filename": "selfie_left.jpg",
+            "storage_url": "https://example.com/uploads/selfie_left.jpg",
+            "file_size": 235000,
+            "uploaddate": "2025-06-15T14:00:06",
+            "hashvalue": "112233445566778899aabbccddeeff00",
+            "encryption_key_id": "key2",
+            "is_original": false,
+            "biotypeid": 1,
+            "mediatypeid": 1
+        },
+        {
+            "filename": "selfie_right.jpg",
+            "storage_url": "https://example.com/uploads/selfie_right.jpg",
+            "file_size": 228000,
+            "uploaddate": "2025-06-15T14:00:07",
+            "hashvalue": "ffeeddccbbaa99887766554433221100",
+            "encryption_key_id": "key3",
+            "is_original": false,
+            "biotypeid": 1,
+            "mediatypeid": 1
+        }
+    ],
+    "sessionid": 2,
+    "ballot": 
+    {
+        "voteDate": "2025-06-26T15:45:00",
+        "signature": "ZmluZ2VycHJpbnQ=",  
+        "proof": "cHJvb2ZfZGVfY29ub2NpbWllbnRl",
+        "answers": 
+        [
+            {
+                "questionid": 2,
+                "optionsid": [3]
+            },
+            {
+                "questionid": 3,
+                "optionsid": [5,6]
             }
         ]
     }
@@ -937,5 +1013,1017 @@ async function getLastFiveVotes(userId)
 }
 ```
 ### Endpoint configurarVotacion
+http://localhost:3000/dev/api/configureVoting
 
+#### JSON de prueba
+
+JSON de prueba 1 (Crear)
+```json
+{
+    "proposalid": 3,
+    "impact_zone": [
+        {
+            "zone": "Ciudadanos de bajos ingresos",
+            "zone_typeid": 1,
+            "impact_levelid": 3,
+            "description": "Afecta directamente el presupuesto de los ciudadanos de bajos ingresos."
+        },
+        {
+            "zone": "Instituciones Públicas de Salud",
+            "zone_typeid": 2,
+            "impact_levelid": 4,
+            "description": "Reducción del IVA podría comprometer el financiamiento de instituciones de salud."
+        },
+        {
+            "zone": "Empresas proveedoras de electricidad",
+            "zone_typeid": 3,
+            "impact_levelid": 2,
+            "description": "Impacto moderado en ingresos por tarifas reguladas."
+        },
+        {
+            "zone": "Escuelas y colegios públicos",
+            "zone_typeid": 4,
+            "impact_levelid": 1,
+            "description": "Impacto leve en el presupuesto operativo institucional."
+        }
+    ],
+    "session": {
+        "startDate": "2025-06-20T08:00:00Z",
+        "endDate": "2025-06-29T20:00:00Z",
+        "voteTypeid": 1,
+        "visibilityid": 1,
+        "criterios": [
+            {
+                "code" : "M",
+                "value": "Male",
+                "weigth": "1"
+            },
+            {
+                "code" : "CRC",
+                "value": "Costa Rica",
+                "weigth": "1"
+            }
+        ],
+        "questions": [
+            {
+                "description": "¿Está de acuerdo con reducir el IVA en servicios esenciales como agua y electricidad?",
+                "questionid": null,
+                "required": 1,
+                "max_answers": 1,
+                "question_typeid": 1,
+                "options": [
+                    {
+                        "optionid": null,
+                        "description": "Sí, totalmente de acuerdo",
+                        "value": "si",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 1
+                    },
+                    {
+                        "optionid": null,
+                        "description": "No estoy de acuerdo",
+                        "value": "no",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 2
+                    }
+                ]
+            },
+            {
+                "questionid": null,
+                "description": "¿Cuáles de estos criterios considera más relevantes al evaluar esta propuesta?",
+                "required": 1,
+                "max_answers": 2,
+                "question_typeid": 2,
+                "options": [
+                    {
+                        "optionid": null,
+                        "description": "Impacto económico",
+                        "value": "impacto",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 1
+                    },
+                    {
+                        "optionid": null,
+                        "description": "Viabilidad política",
+                        "value": "viabilidad",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 2
+                    },
+                    {
+                        "optionid": null,
+                        "description": "Apoyo ciudadano",
+                        "value": "apoyo",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 3
+                    }
+                ]
+            }
+        ],
+        "rules": [
+            {
+                "rule": "Aceptación por mayoría",
+                "value": true
+            },
+            {
+                "rule": "Rechazo por mayoria",
+                "value": true
+            },
+            {
+                "rule": "Rechazo falta de votos",
+                "value": 100
+            }
+        ],
+        "directList": [
+            {
+                "username": "santiago_contreras542",
+                "identification": "5-0653-1178"
+            },
+            {
+                "username": "diana_soto989",
+                "identification": "5-0238-3737"
+            },
+            {
+                "username": "ángel_ruiz968",
+                "identification": "2-6253-7211"
+            }
+        ],
+        "restrictedIPs":[
+            {
+                "initial_IP": "190.30.0.1",
+                "end_IP": "190.30.255.255",
+                "countryid": 1,
+                "allowed": false
+            },
+            {
+                "initial_IP": "190.31.0.1",
+                "end_IP": "190.31.255.255",
+                "countryid": 1,
+                "allowed": false
+            }
+        ],
+        "schedules": [
+            {
+                "start_time": "08:00:00",
+                "end_time": "12:00:00",
+                "day_of_week": 1
+            },
+            {
+                "start_time": "14:00:00",
+                "end_time": "18:00:00",
+                "day_of_week": 2
+            },
+            {
+                "start_time": "14:00:00",
+                "end_time": "18:00:00",
+                "day_of_week": 3
+            },
+            {
+                "start_time": "14:00:00",
+                "end_time": "18:00:00",
+                "day_of_week": 4
+            },
+            {
+                "start_time": "09:00:00",
+                "end_time": "21:00:00",
+                "day_of_week": 5
+            },
+            {
+                "start_time": "07:00:00",
+                "end_time": "21:00:00",
+                "day_of_week": 6
+            },
+            {
+                "start_time": "10:00:00",
+                "end_time": "18:00:00",
+                "day_of_week": 7
+            }
+        ]
+    }
+}
+```
+
+JSON de prueba 2 (Actualizar)
+```json
+{
+    "proposalid": 3,
+    "impact_zone": [
+        {
+            "zone": "Ciudadanos de bajos ingresos",
+            "zone_typeid": 1,
+            "impact_levelid": 3,
+            "description": "Afecta directamente el presupuesto de los ciudadanos de bajos ingresos."
+        },
+        {
+            "zone": "Instituciones Públicas de Salud",
+            "zone_typeid": 2,
+            "impact_levelid": 4,
+            "description": "Reducción del IVA podría comprometer el financiamiento de instituciones de salud."
+        },
+        {
+            "zone": "Empresas proveedoras de electricidad",
+            "zone_typeid": 3,
+            "impact_levelid": 2,
+            "description": "Impacto moderado en ingresos por tarifas reguladas."
+        },
+        {
+            "zone": "Escuelas y colegios públicos",
+            "zone_typeid": 4,
+            "impact_levelid": 1,
+            "description": "Impacto leve en el presupuesto operativo institucional."
+        }
+    ],
+    "session": {
+        "startDate": "2025-06-30T08:00:00Z",
+        "endDate": "2025-07-07T20:00:00Z",
+        "voteTypeid": 1,
+        "visibilityid": 1,
+        "criterios": [
+            {
+                "code" : "SJ",
+                "value": "San Jose",
+                "weigth": "1"
+            },
+            {
+                "code" : "CRC",
+                "value": "Costa Rica",
+                "weigth": "1"
+            }
+        ],
+        "questions": [
+            {
+                "description": "¿Está de acuerdo con reducir el IVA en servicios esenciales como agua?",
+                "questionid": 2,
+                "required": 1,
+                "max_answers": 1,
+                "question_typeid": 1,
+                "options": [
+                    {
+                        "optionid": 3,
+                        "description": "Sí",
+                        "value": "si",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 1
+                    },
+                    {
+                        "optionid": 4,
+                        "description": "No",
+                        "value": "no",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 2
+                    }
+                ]
+            },
+            {
+                "questionid": 3,
+                "description": "¿Cuáles de estos criterios considera más relevantes al evaluar?",
+                "required": 1,
+                "max_answers": 2,
+                "question_typeid": 2,
+                "options": [
+                    {
+                        "optionid": 5,
+                        "description": "Impacto económico",
+                        "value": "impacto",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 1
+                    },
+                    {
+                        "optionid": 6,
+                        "description": "Viabilidad política",
+                        "value": "viabilidad",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 2
+                    },
+                    {
+                        "optionid": 7,
+                        "description": "Apoyo ciudadano",
+                        "value": "apoyo",
+                        "url": "https://i.imgur.com/JQ7rhJe.jpeg",
+                        "order": 3
+                    }
+                ]
+            }
+        ],
+        "rules": [
+            {
+                "rule": "Aceptación por mayoría",
+                "value": true
+            },
+            {
+                "rule": "Rechazo por mayoria",
+                "value": false
+            },
+            {
+                "rule": "Rechazo falta de votos",
+                "value": 50
+            }
+        ],
+        "directList": [
+            {
+                "username": "carlos_ramos991",
+                "identification": "7-5906-5138"
+            }
+        ],
+        "restrictedIPs":[
+            {
+                "initial_IP": "190.30.0.1",
+                "end_IP": "190.30.255.255",
+                "countryid": 1,
+                "allowed": false
+            },
+            {
+                "initial_IP": "190.31.0.1",
+                "end_IP": "190.31.255.255",
+                "countryid": 1,
+                "allowed": true
+            }
+        ],
+        "schedules": [
+            {
+                "start_time": "08:00:00",
+                "end_time": "23:00:00",
+                "day_of_week": 1
+            },
+            {
+                "start_time": "14:00:00",
+                "end_time": "14:00:00",
+                "day_of_week": 2
+            },
+            {
+                "start_time": "14:00:00",
+                "end_time": "18:00:00",
+                "day_of_week": 3
+            },
+            {
+                "start_time": "14:00:00",
+                "end_time": "18:00:00",
+                "day_of_week": 4
+            },
+            {
+                "start_time": "09:00:00",
+                "end_time": "21:00:00",
+                "day_of_week": 5
+            },
+            {
+                "start_time": "07:00:00",
+                "end_time": "21:00:00",
+                "day_of_week": 6
+            },
+            {
+                "start_time": "10:00:00",
+                "end_time": "18:00:00",
+                "day_of_week": 7
+            }
+        ]
+    }
+}
+
+```
+
+#### Código
+
+Donde se llama el handler del function
+```javascript
+const { configureVoting } = require('../services/configureVotingService');
+
+module.exports.handler = async (event) => 
+{
+    try 
+    {
+        // Aqui se llama la data del usuario que provee el middleware una vez realizado el proceso de autorización
+        const data = JSON.parse(event.requestContext.authorizer.data);
+
+        // Nos traemos la información enviada por la aplicación o en este caso el Postman
+        const body = JSON.parse(event.body);
+
+        // Llamada a la función del service correspondiente donde se va a manejar toda la lógica
+        const result = await configureVoting(data, body);
+
+        // Retorno de la API para mostrar en la aplicación o en este caso el Postman
+        return {
+            statusCode: 200,
+            body: JSON.stringify(result)
+        };
+
+    } catch (error) {
+        // Retorno en caso de error de la API para mostrar en la aplicación o en este caso el Postman
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: error.message })
+        };
+    }
+};
+```
+
+Función en el service donde se va a realizar toda la lógica del endpoint
+```javascript
+const { getSession, createSession, configureQuestions, configureCriterias, searchCriterias, updateSession, configureRules, uploadRestrictedIPs, uploadRestrictedTimes, getProposalById, uploadImpactZones, uploadDirectList, hasUserVoted} = require('../data/voteData');
+const { getIdUsers } = require('../data/authUserData');
+const { sequelize } = require('../db/sequelize');
+
+async function configureVoting(data, body)
+{
+    //Obtener la propuesta que se le quiere realizar la configuración de la sesión y validar si existe
+    const proposal = await getProposalById(body.proposalid);
+    if(!proposal) throw new Error("No existe la propuesta");
+
+    // Validar que el usuario tenga permisos para configurar esa propuesta
+    if(!data.permissions.find(p => p.code === "VOTE_MANAGE")) throw new Error("No tiene permisos para configurar esta votación");
+
+    // Busqueda previa de los id de los usuarios de la lista directa
+    const listUsers = await getIdUsers(body.session.directList);
+
+    //Validar si ya existe una session con el proposalid
+    let session = await getSession(body.proposalid);
+
+    if(session) //Si ya existe
+    {
+        const now = new Date();
+        const startDate = new Date(session.startDate);
+        // No permitir actualizar esta configuración solo hasta que inicie el periodo de votación
+        if (now >= startDate) throw new Error("La sesión de votación ya ha iniciado. No se puede modificar.");
+
+        //Actualiza los datos de la session
+        session.startDate = body.session.startDate;
+        session.endDate = body.session.endDate;
+        session.voteTypeid = body.session.voteTypeid;
+        session.sessionStatusid = 5;
+        session.visibilityid =  body.session.visibilityid;
+
+        //Si la session ya existe filtra los ids, por lo que no tienen a un registro de elegibilidad
+        listUsers = listUsers.filter(async (userid) => {
+            const record = await hasUserVoted(userid, session.sessionid);
+            return !record;
+        });
+    }
+
+    // Busqueda previa de registros de la tabla vote_criterias
+    const criterias = await searchCriterias(body.session.criterios)
+
+    //Validacion de reglas automaticas, si acepta restricciones por IP o Horarios
+    if(body.session.restrictedIPs)
+    {
+        body.session.rules.push({
+            "rule": "Restricción IP",
+            "value": true
+        });
+    }
+    else
+    {
+        body.session.rules.push({
+            "rule": "Restricción IP",
+            "value": false
+        });
+    }
+
+    if(body.session.schedules)
+    {
+        body.session.rules.push({
+            "rule": "Restricción Horario",
+            "value": true
+        });
+    }
+    else
+    {
+        body.session.rules.push({
+            "rule": "Restricción Horario",
+            "value": false
+        });
+    }
+    //Inicio de la transaccion
+    try {
+        const result = await sequelize.transaction(async (t) => 
+        {
+            // Guardar la configuración completa de la votación en estado preparado
+            // Establecer fechas de apertura y cierre de la votación
+            // Especificar el tipo de votación: única, múltiple, calificación, etc.
+            if(session) await updateSession(session, t);
+            else 
+            {
+                session = await createSession({
+                    startDate: body.session.startDate,
+                    endDate: body.session.endDate,
+                    voteTypeid: body.session.voteTypeid,
+                    sessionStatusid: 5,
+                    visibilityid: body.session.visibilityid,
+                }, body.proposalid, t);
+            }
+
+            // Definir población meta mediante filtros como edad, sexo, nacionalidad, ubicación, instituciones, etc.
+            await configureCriterias(session.sessionid, criterias, t)
+
+            // Cargar la(s) pregunta(s) asociada(s) a la propuesta y los posibles valores de respuesta
+            await configureQuestions(session.sessionid, body.session.questions, t);
+
+            //Guardar o actualizar las reglas automáticas
+            await configureRules(session.sessionid, body.session.rules, t);
+
+            //Guardar o actualizar las restricciones de IP
+            await uploadRestrictedIPs(session.sessionid, body.session.restrictedIPs, t);
+
+            //Guardar o actualizar las restricciones de horarios
+            await uploadRestrictedTimes(session.sessionid, body.session.schedules, t);
+
+            //Guardar las listas directas
+            //Para cada userid, para crear un registro de elegibility
+            await uploadDirectList(session.sessionid, listUsers, t);
+
+            //Guardar o actualizar las zonas de impacto de la propuesta
+            await uploadImpactZones(body.proposalid, body.impact_zone, t);
+        });
+        
+        return {
+            success: true,
+            mensaje: "Configuracion aplicada correctamente a la sesion de votos para la propuesta ",
+            proposal
+        }
+    } catch (error) {
+        console.error('Error en transacción de configurar voto: ', error);
+        return { success: false, error: error.message };
+    }
+}
+
+module.exports = { configureVoting };
+```
+
+Funciones de llamada de la carpeta data, la cuál realiza el manejo de datos
+
+Función que busca los criterios brindados, y retorna los criterios con sus respectivos ID´s
+```javascript
+async function searchCriterias(criterias) 
+{
+    for (const criterio of criterias) 
+    {
+        // Busca un registro en la tabla VpvDemographicData que coincida con el código y valor del criterio
+        const resultado = await VpvDemographicData.findOne({
+            where: {
+                code: criterio.code,
+                description: criterio.value
+            }
+        });
+
+        // Extrae el ID demográfico del resultado encontrado
+        let demographicid = resultado.demographicid
+
+        // Lo asigna al objeto criterio actual para mantener la relación
+        criterio.demographicid = demographicid;
+
+        // Busca en la tabla VoteCriteria si ya existe un criterio vinculado a ese demographicid
+        let criteria = await VoteCriteria.findOne(
+        {
+            where: { demographicid },
+            attributes: ['criteriaid']
+        });
+
+        // Si no existe ese criterio, lo crea
+        if (!criteria) 
+        {
+            criteria = await VoteCriteria.create({
+                demographicid,
+                type: resultado.description,
+                datatype: 'text'
+            });
+        }
+
+        // Asocia el ID del criterio al objeto original
+        criterio.criteriaid = criteria.criteriaid;
+    }
+
+    // Devuelve el arreglo de criterios actualizado, con demographicid y criteriaid agregados
+    return criterias;
+}
+```
+
+Función que crea la sesión de votos a la propuesta en caso de que no exista
+```javascript
+async function createSession({startDate, endDate, voteTypeid, sessionStatusid, visibilityid}, proposalid, transaction) 
+{
+    try 
+    {
+        //Crea un string random para la public_key
+        const randomString = crypto.randomBytes(16).toString('hex');
+
+        const public_key = Buffer.from(randomString, 'utf8');
+
+        // Crear sesión de votos
+        const session = await VoteSession.create({
+            startDate,
+            endDate,
+            public_key,
+            sessionStatusid,
+            voteTypeid,
+            visibilityid
+        }, { transaction });
+
+        await CfProposalVote.create(
+            {
+                date: new Date(),
+                result: 0,
+                sessionid: session.sessionid,
+                proposalid
+            }, { transaction }
+        );
+
+        return session
+    } catch (error) {
+        throw new Error("Error en crear la sesión de votos: " + error.message);
+    }
+}
+```
+
+Función que configura los criterios de aceptación para votar en la propuesta
+```javascript
+async function configureCriterias(sessionid, criterios, transaction) 
+{
+    try 
+    {
+        // Recorre todos los criterios enviados
+        for (const criterio of criterios) 
+        {
+            // Verifica si ya existe una regla de votación para este criterio en la sesión dada
+            const existing = await VotingRule.findOne({
+                where: {
+                    sessionid,
+                    criteriaid: criterio.criteriaid
+                }, transaction
+            });
+
+            // Si la regla ya existe, la actualiza
+            if(existing)
+            {
+                await VotingRule.update(
+                {
+                    value: criterio.value,
+                    weight: parseFloat(criterio.weigth),
+                    enabled: true
+                },
+                {
+                    where: 
+                    {
+                        sessionid,
+                        criteriaid: criterio.criteriaid
+                    },
+                    transaction
+                });
+            }
+            else // Si no existe, la crea desde cero
+            {
+                await VotingRule.create(
+                {
+                    value: criterio.value,
+                    weight: parseFloat(criterio.weigth),
+                    enabled: true,
+                    sessionid,
+                    criteriaid: criterio.criteriaid
+                }, { transaction });
+            }
+        }
+    } catch (error) {
+        throw new Error("Error en configurar criterios: " + error.message);
+    }
+}
+```
+
+Función para configurar las preguntas y respuestas que tendrá la sesión de votos
+```javascript
+async function configureQuestions(sessionid, questions, transaction) 
+{
+    try 
+    {
+        const now = new Date();
+
+        // Recorre todas las preguntas proporcionadas
+        for (const q of questions) 
+        {
+            let question = q
+
+            // Si la pregunta ya existe se actualiza
+            if(q.questionid)
+            {
+                await VoteQuestion.update({
+                    description: q.description,
+                    required: !!q.required,
+                    max_answers: q.max_answers,
+                    updateDate: now,
+                    question_typeid: q.question_typeid
+                }, 
+                { 
+                    where:
+                    { 
+                        sessionid,
+                        questionid: q.questionid
+                    },
+                    transaction
+                });
+            }
+            else // Si la pregunta no existe aún se crea
+            {
+                question = await VoteQuestion.create({
+                    description: q.description,
+                    required: !!q.required,
+                    max_answers: q.max_answers,
+                    createDate: now,
+                    updateDate: null,
+                    question_typeid: q.question_typeid,
+                    sessionid
+                }, { transaction });
+            }
+
+            // Luego procesa sus opciones de respuesta
+            for (const opt of q.options) 
+            {
+                 // Se genera un checksum basado en los datos principales de la opción
+                const raw = `${opt.description}-${opt.value}-${opt.order}`;
+                const checksum = crypto.createHash('sha256').update(raw).digest();
+
+                // Si la opción ya existe se actualiza
+                if(opt.optionid)
+                {
+                    await VoteOption.update({
+                        description: opt.description,
+                        value: opt.value,
+                        url: opt.url,
+                        order: opt.order,
+                        checksum: checksum,
+                        updateDate: now
+                    }, 
+                    { 
+                        where:
+                        {
+                            questionid: question.questionid,
+                            optionid: opt.optionid
+                        },
+                        transaction
+                    });
+                }
+                else // Si la opción no existe aún se crea
+                {
+                    await VoteOption.create({
+                        description: opt.description,
+                        value: opt.value,
+                        url: opt.url,
+                        order: opt.order,
+                        checksum: checksum,
+                        createDate: now,
+                        updateDate: null,
+                        questionid: question.questionid
+                    }, { transaction });
+                }
+            }
+        }
+    } catch (error) {
+        throw new Error("Error en configurar las preguntas y respuestas: " + error.message);
+    }
+}
+```
+
+Función para configurar las reglas automáticas de aceptación de la sesión
+```javascript
+async function configureRules(sessionid, rules, transaction) 
+{
+    try 
+    {
+        // Recorre todas las reglas enviadas
+        for (const rule of rules) 
+        {
+            //Busca el tipo de regla que se va a aplicar
+            const ruleType = await VoteRule.findOne({
+                where: { name: rule.rule }
+            });
+
+            // Busca si ya existe una regla de aceptación configurada para esta sesión y tipo de regla
+            const existing = await VoteAcceptanceRule.findOne({
+                where: {
+                    sessionid,
+                    rule_typeid: ruleType.ruleid
+                }, transaction
+            });
+
+            // Si ya existe la regla, se actualiza con los nuevos valores
+            if(existing)
+            {
+                await VoteAcceptanceRule.update(
+                {
+                    quantity: rule.value,
+                    description: ruleType.name + " " + rule.value,
+                    enabled: true
+                },
+                {
+                    where: 
+                    {
+                        sessionid,
+                        rule_typeid: ruleType.ruleid
+                    },
+                    transaction
+                });
+            }
+            else // Si no existe, se crea una nueva entrada con los valores especificados
+            {
+                await VoteAcceptanceRule.create(
+                {
+                    quantity: rule.value,
+                    description: ruleType.name + " " + rule.value,
+                    enabled: true,
+                    sessionid,
+                    rule_typeid: ruleType.ruleid
+                }, { transaction });
+            }
+        }
+    } catch (error) {
+        throw new Error("Error en configurar las reglas de la sesión de votos: " + error.message);
+    }
+}
+```
+
+Función para configurar las restricciones de IP de quienes pueden votar
+```javascript
+async function uploadRestrictedIPs (sessionid, restrictedIPs, transaction)
+{
+    try 
+    {
+        // Recorre cada objeto de whitelist en el arreglo recibido
+        for (const ip of restrictedIPs) 
+        {
+            // Verifica si ya existe un rango de IPs en la whitelist con el mismo rango y país
+            let whitelist = await VpvWhitelist.findOne({
+                where: { 
+                    initial_IP: ip.initial_IP, 
+                    end_IP: ip.end_IP, 
+                    countryid: ip.countryid 
+                },
+                transaction
+            });
+
+            // Si no existe, lo crea en la tabla de whitelist
+            if (!whitelist) 
+            {
+                whitelist = await VpvWhitelist.create({
+                    initial_IP: ip.initial_IP,
+                    end_IP: ip.end_IP,
+                    countryid: ip.countryid,
+                    allowed: true
+                }, { transaction });
+            }
+
+            // Verifica si ya existe una regla de restricción para esta sesión y este whitelistid
+            const restriction = await VoteSessionIpPermission.findOne({
+                where: { 
+                    sessionid,
+                    whitelistid: whitelist.whitelistid
+                },
+                transaction
+            });
+
+            // Si ya existe, la actualiza con el nuevo valor
+            if(restriction)
+            {
+                await VoteSessionIpPermission.update(
+                {
+                    allowed: ip.allowed,
+                },
+                {
+                    where: 
+                    {
+                        sessionid,
+                        whitelistid: whitelist.whitelistid
+                    },
+                    transaction
+                });
+            }
+            else // Si no existe, crea una nueva restricción IP para esta sesión
+            {
+                await VoteSessionIpPermission.create({
+                    sessionid,
+                    whitelistid: whitelist.whitelistid,
+                    allowed: ip.allowed,
+                    created_date: new Date(),
+                }, { transaction });
+            }
+        }
+    } catch (error) {
+        throw new Error("Error en configurar la restricción de IPs: " + error.message);
+    }
+};
+```
+
+Función para configurar los horarios de votación
+```javascript
+async function uploadRestrictedTimes (sessionid, schedules, transaction)
+{
+    try 
+    {
+        // Recorre cada horario dentro del arreglo
+        for (const schedule of schedules) 
+        {
+            // Busca si ya existe una restricción horaria para el mismo día de la semana en esa sesión
+            let existingRestriction = await VoteSessionTimeRestriction.findOne({
+                where: {
+                    sessionid,
+                    day_of_week: schedule.day_of_week
+                },
+                transaction
+            });
+
+            // Si ya existe una restricción para ese día, se actualiza con los nuevos valores
+            if (existingRestriction) 
+            {
+                existingRestriction.start_time = schedule.start_time;
+                existingRestriction.end_time = schedule.end_time;
+                existingRestriction.allowed = schedule.allowed;
+
+                await existingRestriction.save({ transaction });
+            } 
+            else // Si no existe, se crea una nueva restricción horaria para ese día
+            {
+                await VoteSessionTimeRestriction.create({
+                    sessionid,
+                    start_time: schedule.start_time,
+                    end_time: schedule.end_time,
+                    day_of_week: schedule.day_of_week,
+                    allowed: schedule.allowed
+                }, { transaction });
+            }
+        }
+    } catch (error) {
+        throw new Error("Error en configurar los horarios de votación: " + error.message);
+    }
+};
+```
+
+Función para configurar la lista directa de votantes
+```javascript
+async function uploadDirectList (sessionid, directList, transaction)
+{
+    try 
+    {
+        // Mapea cada userid de la lista directa a una llamada a la función de crear un registro de elegibilidad
+        const promises = directList.map(async (userid) => {
+            return createEligibility(userid, sessionid, transaction);
+        });
+
+        // Espera a que todas las elegibilidades sean creadas en paralelo
+        await Promise.all(promises);
+    } catch (error) {
+        throw new Error("Error en configurar la lista directa de votantes: " + error.message);
+    }
+};
+```
+Función para configurar las zonas de impacto de la propuesta
+```javascript
+async function uploadImpactZones(proposalid, impactZoneData, transaction) 
+{
+    try 
+    {
+        // Recorre cada elemento del arreglo de zonas de impacto
+        for (const item of impactZoneData) 
+        {
+            // Busca si ya existe una zona de impacto con el mismo nombre
+            let impactZone = await VpvImpactZone.findOne({
+                where: {
+                    name: item.zone
+                },
+                transaction
+            });
+
+            // Si la zona no existe, la crea con su tipo
+            if (!impactZone) 
+            {
+                impactZone = await VpvImpactZone.create({
+                    name: item.zone,
+                    zone_typeid: item.zone_typeid
+                }, { transaction });
+            }
+
+            // Verifica si ya existe una relación entre la propuesta y la zona
+            const existing = await VpvProposalImpactZone.findOne({
+                where: {
+                    proposalid,
+                    zoneid: impactZone.zoneid
+                },
+                transaction
+            });
+
+            // Si ya existe la relación, actualiza el nivel de impacto y la descripción
+            if (existing) 
+            {
+                await existing.update({
+                    impact_levelid: item.impact_levelid,
+                    description: item.description
+                }, { transaction });
+            } 
+            else // Si no existe la relación, la crea desde cero
+            {
+                await VpvProposalImpactZone.create({
+                    proposalid,
+                    zoneid: impactZone.zoneid,
+                    impact_levelid: item.impact_levelid,
+                    description: item.description
+                }, { transaction});
+            }
+        }
+    } catch (error) {
+        throw new Error("Error en configurar las zonas de impacto de las propuestas: " + error.message);
+    }
+}
+```
 # Dashboard de consultas

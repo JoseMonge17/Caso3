@@ -18,7 +18,7 @@ async function verifyMfaCode(method_id, code)
     });
 
     if (!record) {
-        return { authenticated: false, error: 'Código inválido o expirado' };
+        return { authenticated: false, error: 'Código inválido o expirado del MFA' };
     }
 
     // Código válido, actualizar status
