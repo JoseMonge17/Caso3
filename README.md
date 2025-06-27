@@ -54,6 +54,8 @@ Fecha de entrega: 28 de junio de 2025
 
 # Diseño de la base de datos
 
+[Ver Diagrama en formato pdf](Diagrama.pdf)
+
 # Implementación de la API
 
 ### **Estructura de la API:**  
