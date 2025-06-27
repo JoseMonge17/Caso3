@@ -283,6 +283,43 @@ const VpvProposal = sequelize.define('vpv_proposal', {
     timestamps: false
 });
 
+const VpvProposalComment = sequelize.define('vpv_proposal_comments', {
+  commentid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userid: { type: DataTypes.INTEGER, allowNull: false },
+  proposalid: { type: DataTypes.INTEGER, allowNull: false },
+  content: { type: DataTypes.TEXT, allowNull: false },
+  created_at: { type: DataTypes.DATE, allowNull: false },
+  status: { type: DataTypes.STRING(20), allowNull: false }, // Pendiente, Aprobado, Rechazado
+  integrity_hash: { type: DataTypes.STRING(100), allowNull: false }
+}, {
+  tableName: 'vpv_proposal_comments',
+  timestamps: false
+});
+
+const VpvDigitalDocument = sequelize.define('vpv_digital_documents', {
+  documentid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  filename: { type: DataTypes.STRING(100), allowNull: false },
+  storage_url: { type: DataTypes.STRING(255), allowNull: false },
+  filesize: { type: DataTypes.INTEGER, allowNull: false },
+  uploaded_at: { type: DataTypes.DATE, allowNull: false },
+  uploaded_by: { type: DataTypes.INTEGER, allowNull: false },
+  requestid: { type: DataTypes.INTEGER, allowNull: true } // se hizo nullable por decisión tuya
+}, {
+  tableName: 'vpv_digital_documents',
+  timestamps: false
+});
+
+const VpvProposalDocumentComment = sequelize.define('vpv_proposal_documents_comments', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  proposalid: { type: DataTypes.INTEGER, allowNull: false },
+  documentid: { type: DataTypes.INTEGER, allowNull: false },
+  linked_at: { type: DataTypes.DATE, allowNull: false }
+}, {
+  tableName: 'vpv_proposal_documents_comments',
+  timestamps: false
+});
+
+
 // Tablas relacionadas con votos
 const VoteCriteria = sequelize.define('vote_criterias', {
   criteriaid: { type: DataTypes.TINYINT, primaryKey: true, autoIncrement: true },
@@ -521,6 +558,27 @@ const VpvProposalImpactZone = sequelize.define('VpvProposalImpactZone', {
   timestamps: false
 });
 
+//Tablas de validacion
+const VpvValidationRequest = sequelize.define('vpv_validation_request', {
+    requestid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    creation_date: { type: DataTypes.DATE, allowNull: false },
+    finish_date: { type: DataTypes.DATE, allowNull: true },
+    global_result: { type: DataTypes.TEXT, allowNull: true },
+    userid: { type: DataTypes.INTEGER, allowNull: false },
+    validation_typeid: { type: DataTypes.INTEGER, allowNull: false }
+}, {
+    tableName: 'vpv_validation_request',
+    timestamps: false
+});
+
+const VpvValidationType = sequelize.define('vpv_validation_type', {
+    validation_typeid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    name: { type: DataTypes.STRING(100), allowNull: false }
+}, {
+    tableName: 'vpv_validation_type',
+    timestamps: false
+});
+
 
 //Relaciones entre tablas
 VpvProposalImpactZone.belongsTo(VpvImpactZone, { foreignKey: 'zoneid' });
@@ -595,6 +653,18 @@ RolePermission.belongsTo(Permission, { foreignKey: 'permissionid' });
 User.hasMany(UserKey, { foreignKey: 'userid' });
 UserKey.belongsTo(User, { foreignKey: 'userid' });
 
+VpvProposalComment.belongsTo(User, { foreignKey: 'userid' });
+VpvProposalComment.belongsTo(VpvProposal, { foreignKey: 'proposalid' });
+
+VpvDigitalDocument.belongsTo(User, { foreignKey: 'uploaded_by' });
+VpvDigitalDocument.belongsTo(VpvValidationRequest, { foreignKey: 'requestid' }); //Permite NULL
+
+VpvValidationRequest.belongsTo(VpvValidationType, { foreignKey: 'validation_typeid' });
+VpvValidationRequest.belongsTo(User, { foreignKey: 'userid' });
+
+VpvProposalDocumentComment.belongsTo(VpvProposal, { foreignKey: 'proposalid' });
+VpvProposalDocumentComment.belongsTo(VpvDigitalDocument, { foreignKey: 'documentid' });
+
 module.exports = {
   sequelize,
   User,
@@ -637,5 +707,10 @@ module.exports = {
   VpvAddress,
   VpvAddressAssignment,
   VpvImpactZone,
-  VpvProposalImpactZone
+  VpvProposalImpactZone,
+  VpvValidationRequest,
+  VpvValidationType,
+  VpvProposalComment,
+  VpvDigitalDocument,
+  VpvProposalDocumentComment,
 };
