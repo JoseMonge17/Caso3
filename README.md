@@ -54,6 +54,14 @@ Fecha de entrega: 28 de junio de 2025
 
 # Diseño de la base de datos
 
+[Ver documento PDF](Diagrama.pdf)
+
+<embed src="Diagrama.pdf" width="100%" height="600px" type="application/pdf">
+
+![Descripción de la imagen](Diagrama.pdf)
+
+
+
 # Implementación de la API
 
 ### **Estructura de la API:**  
