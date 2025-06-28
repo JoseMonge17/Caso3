@@ -304,7 +304,7 @@ const VpvDigitalDocument = sequelize.define('vpv_digital_documents', {
   filesize: { type: DataTypes.INTEGER, allowNull: false },
   uploaded_at: { type: DataTypes.DATE, allowNull: false },
   uploaded_by: { type: DataTypes.INTEGER, allowNull: false },
-  requestid: { type: DataTypes.INTEGER, allowNull: true } // se hizo nullable por decisión tuya
+  requestid: { type: DataTypes.INTEGER, allowNull: true }
 }, {
   tableName: 'vpv_digital_documents',
   timestamps: false

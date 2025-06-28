@@ -44,7 +44,8 @@ async function insertAttachmentAndLink({ proposalid, file, commentContext }) {
         storage_url: file.url,
         filesize: file.size,
         uploaded_at: commentContext.timestamp,
-        uploaded_by: commentContext.userid
+        uploaded_by: commentContext.userid,
+        requestid: 1
     });
 
     // Relacionarlo al comentario/propuesta
