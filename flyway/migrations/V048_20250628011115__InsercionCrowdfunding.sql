@@ -46,7 +46,8 @@ INSERT INTO cf_sectors (name) VALUES
 ('Servicios Profesionales'),
 ('Investigación y Desarrollo');
 
-
+DELETE FROM cf_projects
+DBCC CHECKIDENT ('cf_projects',RESEED,0)
 /*
 ******************************************************************
 1. Infraestructura Pública (Boulevard Cartago)
@@ -503,8 +504,6 @@ VALUES (
 );
 
 
-
-
 -- Crear reporte financiero aprobado para las ganancias
 INSERT INTO cf_financial_reports (
     period, reporttypeid, document_hash, submission_date,
@@ -521,3 +520,7 @@ VALUES (
     1,
     'Reporte de Ganancias T2-2025 - Proyecto Plataforma de Agricultura Digital'
 );
+
+
+
+
