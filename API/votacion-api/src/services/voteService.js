@@ -239,6 +239,10 @@ async function vote(data, body)
 
 const ipToNumber = (ip) => 
 {
+    // Separa la IP en sus 4 octetos ["192", "168", "0", "1"]
+    // Recorre cada octeto
+    // Desplaza 8 bits y suma el octeto actual
+    // Valor inicial del acumulador
     return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
 };
 
