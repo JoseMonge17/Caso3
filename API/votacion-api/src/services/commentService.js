@@ -8,10 +8,14 @@ async function comment(data, body)
     const user = data.user;
     const { proposalid, content, attachments = [] } = body;
 
+    console.log('Llegué al service')
+    console.log('Usuario: '+user.userid)
+    
     //Verificar si la propuesta permite comentarios
     // Yo: 1. Validación simple de si permite comentarios
     // El Profe: 1. Si 
     const proposal = await getProposalById(proposalid);
+    console.log(proposal)
     if (!proposal) throw new Error('Propuesta no encontrada');
     if (!proposal.allows_comments) throw new Error('Esta propuesta no permite comentarios');
 
@@ -39,7 +43,7 @@ async function comment(data, body)
     {
         // Validar y registrar attachments
         for (const file of attachments) {
-            const validacion = await validar(file); // simula ejecución de workflow
+            const validacion = await workflow(file); // simula ejecución de workflow
             if (!validacion.success) {
                 throw new Error(`Archivo adjunto rechazado: ${file.filename}`);
             }

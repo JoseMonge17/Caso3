@@ -2,6 +2,7 @@ const { comment } = require('../services/commentService');
 
 module.exports.handler = async (event) => 
 {
+    console.log('Llega bien al handler')
     try 
     {
         // Aqui se llama la data del usuario que provee el middleware una vez realizado el proceso de autorización
@@ -9,6 +10,7 @@ module.exports.handler = async (event) =>
 
         // Nos traemos la información enviada por la aplicación o en este caso el Postman
         const body = JSON.parse(event.body);
+
 
         // Llamada a la función del service correspondiente donde se va a manejar toda la lógica
         const result = await comment(data, body);

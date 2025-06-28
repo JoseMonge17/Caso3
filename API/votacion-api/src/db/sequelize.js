@@ -277,7 +277,8 @@ const VpvProposal = sequelize.define('vpv_proposal', {
     userid: { type: DataTypes.INTEGER, allowNull: false },
     statusid: { type: DataTypes.INTEGER, allowNull: false },
     proposal_typeid: { type: DataTypes.INTEGER, allowNull: false },
-    entityid: { type: DataTypes.INTEGER, allowNull: false }
+    entityid: { type: DataTypes.INTEGER, allowNull: false },
+    allows_comments: { type: DataTypes.BOOLEAN, allowNull: false}
 }, {
     tableName: 'vpv_proposal',
     timestamps: false
@@ -571,11 +572,11 @@ const VpvValidationRequest = sequelize.define('vpv_validation_request', {
     timestamps: false
 });
 
-const VpvValidationType = sequelize.define('vpv_validation_type', {
+const VpvValidationType = sequelize.define('vpv_validation_types', {
     validation_typeid: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: { type: DataTypes.STRING(100), allowNull: false }
 }, {
-    tableName: 'vpv_validation_type',
+    tableName: 'vpv_validation_types',
     timestamps: false
 });
 

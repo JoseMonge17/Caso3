@@ -6,7 +6,7 @@ const { VpvValidationRequest, VpvValidationType } = require('../db/sequelize');
  * @returns {Promise<{ success: boolean, global_result: string }>}
  */
 async function workflow({ userid }) {
-    const validation_typeid = await getValidationTypeIdByName('Validación de documento');
+    const validation_typeid = await getValidationTypeIdByName('Validación de comentario');
 
     const request = await VpvValidationRequest.create({
         creation_date: new Date(),
