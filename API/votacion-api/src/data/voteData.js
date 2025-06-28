@@ -645,7 +645,7 @@ async function getRestrictionTime(sessionid, day)
 
 async function getRestrictionIPs(sessionid, countriesid)
 {
-    //Busca todos los registros de la tabla intermetida VoteSessionIpPermission y se trae incluidos de una vez todos los whitelists
+    //Busca todos los registros de la tabla intermedia VoteSessionIpPermission y se trae incluidos de una vez todos los whitelists
     const whitelistRecords = await VoteSessionIpPermission.findAll({
         where: { sessionid, allowed: false },
         include: [{
@@ -672,7 +672,7 @@ async function getRestrictionIPs(sessionid, countriesid)
 
 async function getCountriesByUserId (userid)
 {
-      try {
+    try {
         const addressAssignments = await VpvAddressAssignment.findAll({
         where: { userid },
         include: [{
@@ -688,6 +688,7 @@ async function getCountriesByUserId (userid)
         });
 
         const countryIds = [];
+
         addressAssignments.forEach(assignment => {
             const countryid = assignment.VpvAddress.VpvCity.VpvState.VpvCountry.countryid;
             countryIds.push(countryid);

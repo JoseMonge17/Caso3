@@ -52,7 +52,6 @@ async function listVotes(data, body)
 
         if (!esValido) //Voto malversado
         {
-            console.warn(`Checksum no coincide para ballot ${ballot.vote_registryid}`);
             votosSecretos.push({
                 propuesta,
                 fecha: new Date(ballot.voteDate).toLocaleString('es-CR', {
