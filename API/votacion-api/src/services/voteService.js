@@ -148,7 +148,7 @@ async function vote(data, body)
     let vote_userid = user.userid
 
     //Ver si la votacion es secreta
-    if(session.voteTypeid==1)
+    if(session.voteTypeid==2)
     {
         // Cifrar el voto utilizando la llave vinculada a la identidad del votante
             // Convertir la clave recibida a Buffer real osea a un objeto binario que Node.js pueda manejar
@@ -231,7 +231,7 @@ async function vote(data, body)
                 timeZone: 'America/Costa_Rica'
         }),};
     } catch (error) {
-        await insertLog("Fallo en la votacion realizada", body.livenessCheck.device_info, "Modulo votaciones / Realizar votacion", user.userid, "userid", 2, 1, 3);
+        await insertLog("Fallo en la votacion realizada", body.livenessCheck.device_info, "Modulo votaciones / Realizar votacion", user.userid, "userid", 3, 6, 3);
         console.error('Error en transacción de voto: ', error);
         return { success: false, error: error.message };
     }

@@ -74,7 +74,6 @@ async function listVotes(data, body)
         //Si el voto no trae userid es secreto, si lo trae es público, por lo tanto no necesita desencriptarse
         if (!ballot.userid) voto = desencriptarVoto(ballot.encryptedVote, userKey);
         else voto = decodeJson(ballot.encryptedVote);
-
         if (voto) 
         {
             votosSecretos.push({
@@ -94,7 +93,7 @@ async function listVotes(data, body)
         }
     }
     // Registrar esta operación como evento de consulta auditada
-    await insertLog("Consulta auditada de últimas 5 votaciones realizada", body.livenessCheck.device_info, "Modulo votaciones / Mis ultimas 5 votaciones", user.userid, "userid", 1, 1, 1);
+    await insertLog("Consulta auditada de últimas 5 votaciones realizada", body.livenessCheck.device_info, "Modulo votaciones / Mis ultimas 5 votaciones", user.userid, "userid", 2, 5, 1);
 
     //Si está vacía es que el usuario no ha realizado votos
     if(votosSecretos.length==0)

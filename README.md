@@ -1890,7 +1890,7 @@ JSON de prueba 1
             "mediatypeid": 1
         }
     ],
-    "sessionid": 1,
+    "sessionid": 8,
     "ballot": 
     {
         "voteDate": "2025-06-15T15:45:00",
@@ -1899,8 +1899,8 @@ JSON de prueba 1
         "answers": 
         [
             {
-                "questionid": 1,
-                "optionsid": [1]
+                "questionid": 15,
+                "optionsid": [68]
             }
         ]
     }
@@ -1959,7 +1959,7 @@ JSON de prueba 2
             "mediatypeid": 1
         }
     ],
-    "sessionid": 2,
+    "sessionid": 9,
     "ballot": 
     {
         "voteDate": "2025-06-26T15:45:00",
@@ -1968,12 +1968,12 @@ JSON de prueba 2
         "answers": 
         [
             {
-                "questionid": 2,
-                "optionsid": [3]
+                "questionid": 16,
+                "optionsid": [70]
             },
             {
-                "questionid": 3,
-                "optionsid": [5,6]
+                "questionid": 17,
+                "optionsid": [72,73]
             }
         ]
     }
@@ -2788,7 +2788,7 @@ http://localhost:3000/dev/api/configureVoting
 JSON de prueba 1 (Crear)
 ```json
 {
-    "proposalid": 3,
+    "proposalid": 12,
     "impact_zone": [
         {
             "zone": "Ciudadanos de bajos ingresos",
@@ -2816,19 +2816,19 @@ JSON de prueba 1 (Crear)
         }
     ],
     "session": {
-        "startDate": "2025-06-20T08:00:00Z",
-        "endDate": "2025-06-29T20:00:00Z",
+        "startDate": "2025-06-30T08:00:00Z",
+        "endDate": "2025-07-05T20:00:00Z",
         "voteTypeid": 1,
         "visibilityid": 1,
         "criterios": [
             {
-                "code" : "M",
-                "value": "Male",
+                "code" : "GEN01",
+                "value": "Masculino",
                 "weigth": "1"
             },
             {
-                "code" : "CRC",
-                "value": "Costa Rica",
+                "code" : "REG01",
+                "value": "San José Central",
                 "weigth": "1"
             }
         ],
@@ -2901,18 +2901,10 @@ JSON de prueba 1 (Crear)
                 "value": 100
             }
         ],
-        "directList": [
+        "directList": [ //Como son aleatorios pegar directamente de la tabla vpv_users
             {
                 "username": "santiago_contreras542",
                 "identification": "5-0653-1178"
-            },
-            {
-                "username": "diana_soto989",
-                "identification": "5-0238-3737"
-            },
-            {
-                "username": "ángel_ruiz968",
-                "identification": "2-6253-7211"
             }
         ],
         "restrictedIPs":[
@@ -2973,7 +2965,7 @@ JSON de prueba 1 (Crear)
 JSON de prueba 2 (Actualizar)
 ```json
 {
-    "proposalid": 3,
+    "proposalid": 12,
     "impact_zone": [
         {
             "zone": "Ciudadanos de bajos ingresos",
@@ -3001,39 +2993,39 @@ JSON de prueba 2 (Actualizar)
         }
     ],
     "session": {
-        "startDate": "2025-06-30T08:00:00Z",
+        "startDate": "2025-06-27T08:00:00Z",
         "endDate": "2025-07-07T20:00:00Z",
         "voteTypeid": 1,
         "visibilityid": 1,
         "criterios": [
             {
-                "code" : "SJ",
-                "value": "San Jose",
-                "weigth": "1"
+                "code" : "GEN01",
+                "value": "Masculino",
+                "weigth": "1.5"
             },
             {
-                "code" : "CRC",
-                "value": "Costa Rica",
+                "code" : "REG01",
+                "value": "San José Central",
                 "weigth": "1"
             }
         ],
         "questions": [
             {
                 "description": "¿Está de acuerdo con reducir el IVA en servicios esenciales como agua?",
-                "questionid": 2,
+                "questionid": 16,
                 "required": 1,
                 "max_answers": 1,
                 "question_typeid": 1,
                 "options": [
                     {
-                        "optionid": 3,
+                        "optionid": 70,
                         "description": "Sí",
                         "value": "si",
                         "url": "https://i.imgur.com/JQ7rhJe.jpeg",
                         "order": 1
                     },
                     {
-                        "optionid": 4,
+                        "optionid": 71,
                         "description": "No",
                         "value": "no",
                         "url": "https://i.imgur.com/JQ7rhJe.jpeg",
@@ -3042,28 +3034,28 @@ JSON de prueba 2 (Actualizar)
                 ]
             },
             {
-                "questionid": 3,
+                "questionid": 17,
                 "description": "¿Cuáles de estos criterios considera más relevantes al evaluar?",
                 "required": 1,
                 "max_answers": 2,
                 "question_typeid": 2,
                 "options": [
                     {
-                        "optionid": 5,
+                        "optionid": 72,
                         "description": "Impacto económico",
                         "value": "impacto",
                         "url": "https://i.imgur.com/JQ7rhJe.jpeg",
                         "order": 1
                     },
                     {
-                        "optionid": 6,
+                        "optionid": 73,
                         "description": "Viabilidad política",
                         "value": "viabilidad",
                         "url": "https://i.imgur.com/JQ7rhJe.jpeg",
                         "order": 2
                     },
                     {
-                        "optionid": 7,
+                        "optionid": 74,
                         "description": "Apoyo ciudadano",
                         "value": "apoyo",
                         "url": "https://i.imgur.com/JQ7rhJe.jpeg",
@@ -3086,7 +3078,7 @@ JSON de prueba 2 (Actualizar)
                 "value": 50
             }
         ],
-        "directList": [
+        "directList": [ //Como son aleatorios pegar directamente de la tabla vpv_users
             {
                 "username": "carlos_ramos991",
                 "identification": "7-5906-5138"
@@ -3145,7 +3137,6 @@ JSON de prueba 2 (Actualizar)
         ]
     }
 }
-
 ```
 
 #### Código

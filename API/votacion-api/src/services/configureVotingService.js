@@ -125,7 +125,7 @@ async function configureVoting(data, body)
             proposal
         }
     } catch (error) {
-        console.error('Error en transacción de configurar voto: ', error);
+        await insertLog("Fallo en la configuraciond de la votacion", body.livenessCheck.device_info, "Modulo votaciones / Configurar votacion", user.userid, "userid", 3, 7, 3);
         return { success: false, error: error.message };
     }
 }
