@@ -48,32 +48,29 @@ module.exports.handler = async (event) => {
 };
 
 /*
-🧪 JSON de prueba para Postman:
-
 {
-  "name": "Propuesta de Energía Solar",
-  "description": "Proyecto para instalar paneles solares en escuelas rurales.",
+  "name": "Rediseño de Espacios Verdes",
+  "description": "Plan maestro para parques comunitarios",
   "origin_typeid": 1,
   "proposal_typeid": 2,
   "entityid": null,
+  "allows_comments": true,
   "documents": [
     {
-      "name": "Estudio Ambiental Preliminar",
-      "url": "https://example.com/docs/ambiental.pdf",
-      "hash": "doc002hash",
-      "metadata": {"evaluador":"Carlos Rivera","riesgo":"bajo"},
-      "document_typeid": 3,
-      "is_required": false
-    },
-    {
-      "name": "Presupuesto Detallado",
-      "url": "https://example.com/docs/presupuesto.pdf",
-      "hash": "doc003hash",
-      "metadata": {"moneda":"USD","vigencia":"2023-12-31"},
-      "document_typeid": 5,
+      "name": "Informe Técnico",
+      "url": "https://miarchivo.com/doc1.pdf",
+      "hash": "abc123",
+      "metadata": "{\"autor\": \"Luis\"}",
+      "validation_date": null,
+      "requestid": null,
+      "document_typeid": 1,
       "is_required": true
     }
   ],
-  "version_comment": "Primera versión de la propuesta."
+  "target_population": [
+    { "demographicid": 2 },
+    { "demographicid": 4 }
+  ],
+  "version_comment": "Versión inicial para evaluación"
 }
 */

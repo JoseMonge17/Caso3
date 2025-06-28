@@ -1,8 +1,7 @@
-const { crearOActualizarPropuesta } = require('../data/createUpdatePropData');
+const { createOrUpdateProposal } = require('../data/createUpdatePropData');
 
 async function procesarCrearActualizarPropuestaSP(body, user) {
   const userid = user.userid;
-
   const input = JSON.parse(body || '{}');
 
   // Validaciones básicas
@@ -26,12 +25,14 @@ async function procesarCrearActualizarPropuestaSP(body, user) {
     origin_typeid: input.origin_typeid,
     userid,
     proposal_typeid: input.proposal_typeid,
-    entityid: input.entityid ?? null, // puede ser null
+    entityid: input.entityid ?? null,
+    allows_comments: input.allows_comments ?? false,
     documents: input.documents,
+    target_population: input.target_population ?? [],
     version_comment: input.version_comment ?? null
   };
 
-  return await crearOActualizarPropuesta(params);
+  return await createOrUpdateProposal(params);
 }
 
 module.exports = { procesarCrearActualizarPropuestaSP };
