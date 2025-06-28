@@ -1,17 +1,29 @@
 const { VpvProposalComment, VpvLog, VpvDigitalDocument, VpvProposalDocumentComment } = require('../db/sequelize');
-
+const crypto = require('crypto');
 /**
  * Inserta un comentario aprobado en la tabla de comentarios
  */
-async function insertComment({ userid, proposalid, content, status, createdAt, integrityHash }) {
-    await VpvProposalComment.create({
+async function insertComment({ userid, proposalid, content, status, createdAt, integrityHash },documentids, transaction) {
+    let doc = await VpvProposalComment.create({
         userid,
         proposalid,
-        content,
-        status,
-        created_at: createdAt,
-        integrity_hash: integrityHash
-    });
+        content: content,
+        publish: new Date(),
+        statusid: 1,
+        checksum: integrityHash
+    }, { transaction });
+
+    console.log(doc)
+    for(const idDoc of documentids)
+    {
+        
+        // Relacionarlo al comentario/propuesta
+        await VpvProposalDocumentComment.create({
+            proposal_commentid: doc.proposal_commentid,
+            documentid: idDoc,
+            enabled: 1
+        }, { transaction });
+    }
 }
 
 /**
@@ -37,23 +49,39 @@ async function insertRejectedCommentLog({ userid, proposalid, attemptedContent, 
 /**
  * Inserta un archivo y lo vincula al comentario/propuesta
  */
-async function insertAttachmentAndLink({ proposalid, file, commentContext }) {
+async function insertAttachmentAndLink({ proposalid, file, commentContext }, transaction) {
+    // Ruta física del archivo (ajusta si estás en entorno cloud/S3)
+    const hash = crypto
+        .createHash('sha256')
+        .update(`${file.filename}-${file.size}-${file.mimetype || 'application/octet-stream'}`)
+        .digest('hex');
+
+    const checksum = crypto
+        .createHash('md5')
+        .update(`${file.filename}-${file.size}-${file.mimetype || 'application/octet-stream'}`)
+        .digest('hex');
+
+    // Metadata simulada
+    const metadata = JSON.stringify({
+        filename: file.filename,
+        mimetype: file.mimetype || 'application/octet-stream',
+        size: file.size,
+        hash,
+        checksum,
+        uploaded_at: commentContext.timestamp
+    });
     // Insertar documento digital
     const doc = await VpvDigitalDocument.create({
-        filename: file.filename,
-        storage_url: file.url,
-        filesize: file.size,
-        uploaded_at: commentContext.timestamp,
-        uploaded_by: commentContext.userid,
-        requestid: 1
-    });
+        name: file.filename,
+        url: file.url,
+        hash,
+        metadata,
+        validation_date: null,
+        requestid: 1,
+        document_typeid: 1
+    }, { transaction });
 
-    // Relacionarlo al comentario/propuesta
-    await VpvProposalDocumentComment.create({
-        proposalid,
-        documentid: doc.documentid,
-        linked_at: commentContext.timestamp
-    });
+    return doc
 }
 
 module.exports = {

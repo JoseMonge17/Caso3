@@ -8,13 +8,9 @@ async function comment(data, body)
 {
     const user = data.user;
     const { proposalid, content, attachments = [] } = body;
-
-    console.log('Llegué al service')
-    console.log('Usuario: '+user.userid)
     
     //Verificar si la propuesta permite comentarios
     const proposal = await getProposalById(proposalid);
-    console.log(proposal)
     if (!proposal) throw new Error('Propuesta no encontrada');
     if (!proposal.allows_comments) throw new Error('Esta propuesta no permite comentarios');
 
@@ -34,29 +30,30 @@ async function comment(data, body)
         .update(`${user.userid}|${content}|${timestamp.toISOString()}`)
         .digest('hex');
     
+    let message = ""
     try 
     {
-        const result = await sequelize.transaction(async (t) => 
+        const result = await sequelize.transaction(async (transaction) => 
         {
             if (passedValidation)
             {
-                console.log("Pase validacion")
+                let documentids = []
                 // Validar y registrar attachments
                 for (const file of attachments) {
-                    const validacion = await workflow(user.userid); // simula ejecución de workflow
+                    const validacion = await workflow(user.userid, transaction); // simula ejecución de workflow
                     if (!validacion.success) {
                         throw new Error(`Archivo adjunto rechazado: ${file.filename}`);
                     }
-                    console.log("Cree workflow")
-                    await insertAttachmentAndLink({
+                    const doc = await insertAttachmentAndLink({
                         proposalid,
                         file,
                         commentContext: {
                             userid: user.userid,
                             timestamp
                         }
-                    });
+                    }, transaction);
                     console.log("Cree files")
+                    documentids.push(doc.documentid)
                 }
 
                 //Si se acepta, subir el comentario a la base con metadatos de usuario, propuesta y estado
@@ -70,9 +67,9 @@ async function comment(data, body)
                     status: 'approved',
                     createdAt: timestamp,
                     integrityHash
-                });
+                },documentids, transaction);
                 console.log("Cree Comentario")
-                return { message: "Comentario aprobado y registrado correctamente" };
+                message = "Comentario aprobado y registrado correctamente";
             }
             else
             {
@@ -86,14 +83,15 @@ async function comment(data, body)
                     createdAt: timestamp
                 });
 
-                return { message: "Comentario rechazado por validación automática" };
+                message = "Comentario rechazado por validación automática";
             }
         })
+
+        return {message}
     } catch (error) {
         console.error('Error en transacción de voto: ', error);
         return { success: false, error: error.message };
     }
-    //El contenido debe almacenarse cifrado si incluye archivos o documentos sensibles
 }
 
 module.exports = { comment };

@@ -5,7 +5,7 @@ const { VpvValidationRequest, VpvValidationType } = require('../db/sequelize');
  * @param {int} userid - Objeto con los datos del documento
  * @returns {Promise<{ success: boolean, global_result: string }>}
  */
-async function workflow(userid) {
+async function workflow(userid, transaction) {
 
     const validation_typeid = await getValidationTypeIdByName('Validación de comentario');
 
@@ -14,14 +14,14 @@ async function workflow(userid) {
         creation_date: new Date(),
         userid,
         validation_typeid
-    });
+    }, { transaction });
 
     //await new Promise(resolve => setTimeout(resolve, 1000));
 
     await request.update({
         finish_date: new Date(),
         global_result: 'Éxito'
-    });
+    }, { transaction });
 
     return {
         success: true,
