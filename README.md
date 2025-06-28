@@ -313,7 +313,859 @@ Este diseño garantiza que solo usuarios autenticados y autorizados puedan inter
 ## Endpoints implementados por Stored Procedures
 
 ### Endpoint crearActualizarPropuesta
+http://localhost:3000/dev/api/createUpdateProp
+
+#### JSON de prueba
+Crear nueva propuesta sin entidad
+```json
+{
+  "name": "Sistema de Transporte Público Autónomo",
+  "description": "Propuesta para implementar buses eléctricos autónomos en zonas urbanas.",
+  "origin_typeid": 2,
+  "proposal_typeid": 1,
+  "allows_comments": true,
+  "documents": [
+    {
+      "name": "Informe Técnico",
+      "url": "https://example.com/docs/informe_tecnico.pdf",
+      "hash": "abc123def456",
+      "metadata": "{ \"categoria\": \"movilidad\", \"autor\": \"Dept. Transporte\" }",
+      "document_typeid": 1,
+      "is_required": true
+    },
+    {
+      "name": "Estudio Financiero",
+      "url": "https://example.com/docs/estudio_financiero.pdf",
+      "hash": "789xyz456lmn",
+      "metadata": "{ \"categoria\": \"finanzas\", \"año\": 2025 }",
+      "document_typeid": 2,
+      "is_required": false
+    }
+  ],
+  "target_population": [
+    { "demographicid": 1 },
+    { "demographicid": 3 }
+  ],
+  "version_comment": "Propuesta inicial con análisis técnico y financiero"
+}
+```
+
+Intento de crear propuesta con entidad. Si el userid no es el entity_representative, va a dar error
+```json
+{
+  "name": "Plan de Renovación de Espacios Públicos",
+  "description": "Actualización con anexos y estudios adicionales.",
+  "origin_typeid": 1,
+  "proposal_typeid": 2,
+  "entityid": 4,
+  "allows_comments": false,
+  "documents": [
+    {
+      "name": "Análisis Ambiental",
+      "url": "https://example.com/docs/analisis_ambiental.pdf",
+      "hash": "hash456xyzabc",
+      "metadata": "{ \"impacto\": \"bajo\", \"zona\": \"norte\" }",
+      "document_typeid": 3,
+      "is_required": true
+    }
+  ],
+  "target_population": [
+    { "demographicid": 2 }
+  ],
+  "version_comment": "Se añade análisis ambiental solicitado por el consejo"
+}
+```
+
+#### Capa Handler (/functions/createUpdateProp.js)
+```javascript
+const { procesarCrearActualizarPropuestaSP } = require('../services/createUpdatePropService');
+
+module.exports.handler = async (event) => {
+  console.log("🛬 Llegó al handler de creación/actualización de propuesta");
+
+  const data = JSON.parse(event.requestContext.authorizer.data);
+  const user = data.user;
+  console.log("🧑 Usuario autenticado:", user.username);
+
+  try {
+    const body = JSON.parse(event.body || '{}');
+    
+    if (body.documents && Array.isArray(body.documents)) {
+      body.documents = body.documents.map(doc => ({
+        name: doc.name || `Documento-${Date.now()}`,
+        url: doc.url || '',
+        hash: doc.hash || '',
+        metadata: doc.metadata ? JSON.stringify(doc.metadata) : '{}',
+        validation_date: null,
+        requestid: null,
+        document_typeid: doc.document_typeid || 0,
+        is_required: doc.is_required ? 1 : 0
+      }));
+    }
+
+    const result = await procesarCrearActualizarPropuestaSP(JSON.stringify(body), user);
+    console.log("✅ SP ejecutado correctamente");
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mensaje: 'Propuesta creada o actualizada exitosamente.',
+        resultado: result
+      })
+    };
+  } catch (err) {
+    console.error("❌ Error en el SP:", err);
+
+    return {
+      statusCode: err.statusCode || 500,
+      body: JSON.stringify({ 
+        error: 'Error en la creación o actualización de la propuesta', 
+        detalles: err.message 
+      })
+    };
+  }
+};
+```
+
+#### Capa Service (/services/createUpdatePropService.js)
+```javascript
+const { createOrUpdateProposal } = require('../data/createUpdatePropData');
+
+async function procesarCrearActualizarPropuestaSP(body, user) {
+  const userid = user.userid;
+  const input = JSON.parse(body || '{}');
+
+  // Validaciones básicas
+  const camposFaltantes = [];
+  if (!input.name) camposFaltantes.push('name');
+  if (!input.description) camposFaltantes.push('description');
+  if (input.origin_typeid == null) camposFaltantes.push('origin_typeid');
+  if (input.proposal_typeid == null) camposFaltantes.push('proposal_typeid');
+  if (!Array.isArray(input.documents)) camposFaltantes.push('documents (debe ser array)');
+
+  if (camposFaltantes.length > 0) {
+    throw {
+      statusCode: 400,
+      message: `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`
+    };
+  }
+
+  const params = {
+    name: input.name,
+    description: input.description,
+    origin_typeid: input.origin_typeid,
+    userid,
+    proposal_typeid: input.proposal_typeid,
+    entityid: input.entityid ?? null,
+    allows_comments: input.allows_comments ?? false,
+    documents: input.documents,
+    target_population: input.target_population ?? [],
+    version_comment: input.version_comment ?? null
+  };
+
+  return await createOrUpdateProposal(params);
+}
+
+module.exports = { procesarCrearActualizarPropuestaSP };
+```
+
+#### Capa Data (/data/createUpdatePropData.js)
+```javascript
+const { executeSP, sql } = require('../db/config');
+
+async function createOrUpdateProposal(params) {
+  return executeSP('sp_crear_actualizar_propuesta', 
+    {
+      name: params.name,
+      description: params.description,
+      origin_typeid: params.origin_typeid,
+      userid: params.userid,
+      proposal_typeid: params.proposal_typeid,
+      entityid: params.entityid,
+      allows_comments: params.allows_comments,
+      documents: JSON.stringify(params.documents),
+      target_population: JSON.stringify(params.target_population),
+      version_comment: params.version_comment
+    },
+    {
+      name: sql.VarChar(100),
+      description: sql.VarChar(255),
+      origin_typeid: sql.Int,
+      userid: sql.Int,
+      proposal_typeid: sql.Int,
+      entityid: sql.Int,
+      allows_comments: sql.Bit,
+      documents: sql.NVarChar(sql.MAX),
+      target_population: sql.NVarChar(sql.MAX),
+      version_comment: sql.Text
+    }
+  );
+}
+
+module.exports = { createOrUpdateProposal };
+```
+
+En esta capa se llama al SP correspondiente ejecutando una función que está almacenada en (db/config.js)
+```javascript
+async function executeSP(spName, params = {}, typesConfig = {}) {
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+
+    Object.entries(params).forEach(([key, value]) => {
+      // Usa configuración explícita o determina el tipo
+      const type = typesConfig[key] || determineType(key, value);
+      request.input(key, type, value);
+    });
+
+    const result = await request.execute(spName);
+    return result.recordset;
+  } catch (err) {
+    console.error(`Error en SP ${spName}:`, err);
+    throw err;
+  }
+}
+```
+
+#### Store Procedure crear_actualizar_propuesta
+```sql
+﻿-----------------------------------------------------------
+-- Autor: Daniel Monterrosa
+-- Fecha: 16/6/2025
+-- Descripcion: Recibe los datos del formulario para crear o actualizar la propuesta
+-- Otros parámetros: documents recibe todos los datos de los documentos, target_population solo recibe los ids de las poblaciones meta
+-----------------------------------------------------------
+CREATE OR ALTER PROCEDURE [dbo].[sp_crear_actualizar_propuesta]
+    @name               VARCHAR(100),
+    @description        VARCHAR(255),
+    @origin_typeid      INT,
+    @userid             INT,
+    @proposal_typeid    INT,
+    @entityid           INT = NULL,
+    @allows_comments    BIT,
+    @documents          NVARCHAR(MAX), -- JSON
+    @target_population  NVARCHAR(MAX), -- JSON: [{ "demographicid": 3 }, ...]
+    @version_comment    TEXT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+	-- Variables generales de control
+    DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT;
+    DECLARE @Message NVARCHAR(4000);
+    DECLARE @InicieTransaccion BIT = 0;
+    DECLARE @now DATETIME = GETDATE();
+    DECLARE @proposalid INT;
+    DECLARE @current_version INT;
+    DECLARE @Status_Borrador INT = 1;
+    DECLARE @Status_Modificacion INT = 5;
+
+    -- Carga de IDs necesarios para logs de errores
+    DECLARE @log_typeid INT, @log_sourceid INT, @log_severityid INT;
+    SELECT @log_severityid = log_severityid FROM vpv_log_severity WHERE name = 'Error';
+    SELECT @log_sourceid = log_sourceid FROM vpv_log_source WHERE name = 'Procedimiento sp_crear_actualizar_propuesta';
+    SELECT @log_typeid = log_typeid FROM vpv_log_type WHERE name = 'Error SQL';
+
+	-- Iniciar transacción solo si no hay una activa
+    IF @@TRANCOUNT = 0
+    BEGIN
+        SET @InicieTransaccion = 1;
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+        BEGIN TRANSACTION;
+    END
+
+    BEGIN TRY
+        -- Validar si el usuario tiene permisos de creación (rol con PROP_CREATE)
+        IF NOT EXISTS (
+            SELECT 1
+            FROM vpv_user_roles ur
+            JOIN vpv_rolepermissions rp ON rp.roleid = ur.roleid AND rp.enable = 1 AND rp.deleted = 0
+            JOIN vpv_permissions p ON p.permissionid = rp.permissionid
+            WHERE ur.userid = @userid AND ur.enabled = 1
+              AND p.permissioncode = 'PROP_CREATE'
+        )
+        BEGIN
+            SET @Message = 'El usuario no tiene permisos para crear propuestas.';
+			-- Registrar en logs y cortar ejecución
+            INSERT INTO vpv_logs (
+                description, posttime, computer, trace,
+                reference_id1, reference_id2, value1, value2,
+                checksum, log_typeid, log_sourceid, log_severityid
+            )
+            VALUES (
+                @Message, GETDATE(), HOST_NAME(), 'sp_crear_actualizar_propuesta',
+                NULL, @userid, NULL, NULL,
+                HASHBYTES('SHA1', @Message), @log_typeid, @log_sourceid, @log_severityid
+            );
+            RAISERROR(@Message, 16, 1);
+            RETURN;
+        END
+
+        -- Validar que el usuario sea representante de la entidad (si aplica)
+        IF @entityid IS NOT NULL
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM vpv_entity_representative
+                WHERE entity_id = @entityid
+                  AND user_id = @userid
+                  AND end_date > @now
+            )
+            BEGIN
+                SET @Message = 'El usuario no tiene permisos para esta entidad.';
+                INSERT INTO vpv_logs (
+                    description, posttime, computer, trace,
+                    reference_id1, reference_id2, value1, value2,
+                    checksum, log_typeid, log_sourceid, log_severityid
+                )
+                VALUES (
+                    @Message, GETDATE(), HOST_NAME(), 'sp_crear_actualizar_propuesta',
+                    @entityid, @userid, NULL, NULL,
+                    HASHBYTES('SHA1', @Message), @log_typeid, @log_sourceid, @log_severityid
+                );
+                RAISERROR(@Message, 16, 1);
+                RETURN;
+            END
+        END
+
+        -- Verificar si ya existe la propuesta
+        SELECT @proposalid = proposalid, @current_version = current_version
+        FROM vpv_proposal
+        WHERE name = @name AND userid = @userid AND 
+              (
+                (entityid IS NULL AND @entityid IS NULL) OR
+                (entityid = @entityid)
+              );
+		
+		-- Crear nueva propuesta si no existe
+        IF @proposalid IS NULL
+        BEGIN
+            INSERT INTO vpv_proposal (
+                name, enabled, current_version, description, submission_date,
+                version, origin_typeid, userid, statusid, proposal_typeid, entityid
+            )
+            VALUES (
+                @name, 1, 1, @description, @now,
+                1, @origin_typeid, @userid, @Status_Borrador,
+                @proposal_typeid, @entityid
+            );
+            SET @proposalid = SCOPE_IDENTITY();
+            SET @current_version = 1;
+        END
+        ELSE
+        BEGIN
+			-- Actualizar propuesta existente
+            UPDATE vpv_proposal
+            SET description = @description,
+                origin_typeid = @origin_typeid,
+                proposal_typeid = @proposal_typeid,
+                submission_date = @now,
+                current_version = current_version + 1,
+                statusid = @Status_Modificacion,
+                allows_comments = @allows_comments
+            WHERE proposalid = @proposalid;
+
+            SET @current_version = @current_version + 1;
+        END
+
+        -- Mapear los documentos recibidos (JSON) en una tabla temporal
+        CREATE TABLE #documentMap (
+            name NVARCHAR(100),
+            url NVARCHAR(255),
+            hash NVARCHAR(255),
+            metadata NVARCHAR(MAX),
+            validation_date DATETIME,
+            requestid INT,
+            document_typeid INT,
+            is_required BIT
+        );
+
+        INSERT INTO #documentMap (name, url, hash, metadata, validation_date, requestid, document_typeid, is_required)
+        SELECT 
+            name, url, hash, metadata, validation_date, requestid, document_typeid, is_required
+        FROM OPENJSON(@documents)
+        WITH (
+            name NVARCHAR(100) '$.name',
+            url NVARCHAR(255) '$.url',
+            hash NVARCHAR(255) '$.hash',
+            metadata NVARCHAR(MAX) '$.metadata',
+            validation_date DATETIME '$.validation_date',
+            requestid INT '$.requestid',
+            document_typeid INT '$.document_typeid',
+            is_required BIT '$.is_required'
+        );
+
+        DECLARE @newDoc TABLE (
+            documentid INT,
+            is_required BIT
+        );
+
+        -- Insertar documentos si no existen aún en la base
+        INSERT INTO vpv_digital_documents (name, url, hash, metadata, validation_date, requestid, document_typeid)
+        SELECT dm.name, dm.url, dm.hash, dm.metadata, NULL, NULL, dm.document_typeid
+        FROM #documentMap dm
+        WHERE NOT EXISTS (
+            SELECT 1 FROM vpv_digital_documents dd WHERE CONVERT(NVARCHAR(255), dd.url) = dm.url
+        );
+
+        -- Asociar los documentos a la propuesta en vpv_proposal_documents
+        INSERT INTO @newDoc (documentid, is_required)
+        SELECT dd.documentid, dm.is_required
+        FROM #documentMap dm
+        JOIN vpv_digital_documents dd ON CONVERT(NVARCHAR(255), dd.url) = dm.url;
+
+        INSERT INTO vpv_proposal_documents (proposalid, documentid, is_required)
+        SELECT @proposalid, nd.documentid, nd.is_required
+        FROM @newDoc nd;
+
+        -- Crear nueva versión de la propuesta
+        DECLARE @version_table TABLE (versionid INT);
+        INSERT INTO vpv_proposal_versions (
+            version, changes_description, created_at, approved, proposal_documentid
+        )
+        OUTPUT INSERTED.versionid INTO @version_table(versionid)
+        SELECT @current_version, ISNULL(@version_comment, 'Auto'), @now, 0, pd.proposal_documentid
+        FROM vpv_proposal_documents pd WHERE pd.proposalid = @proposalid;
+
+        -- Calcular hash (checksum) de los documentos para validar integridad
+        DECLARE @checksum VARBINARY(64);
+        SELECT @checksum = HASHBYTES('SHA1', 
+            STRING_AGG(CONVERT(NVARCHAR(MAX), CONCAT_WS('|', name, url, hash)), '')
+        )
+        FROM #documentMap;
+
+        UPDATE vpv_proposal_versions
+        SET checksum = @checksum
+        WHERE versionid IN (SELECT versionid FROM @version_table);
+
+        -- Insertar población meta desde el JSON recibido
+        IF @target_population IS NOT NULL
+        BEGIN
+            DELETE FROM vpv_proposal_target WHERE proposalid = @proposalid;
+
+            INSERT INTO vpv_proposal_target (proposalid, demographicid, assigned_by)
+            SELECT @proposalid, demographicid, @userid
+            FROM OPENJSON(@target_population)
+            WITH (demographicid INT '$.demographicid');
+        END
+
+		-- Cierre exitoso de transacción
+        IF @InicieTransaccion = 1
+        BEGIN
+            COMMIT;
+            SELECT 'Éxito' AS resultado, @proposalid AS proposalid, @current_version AS version;
+        END
+    END TRY
+    BEGIN CATCH
+		-- Manejo de errores, rollback y logs
+        SET @ErrorNumber = ERROR_NUMBER();
+        SET @ErrorSeverity = ERROR_SEVERITY();
+        SET @ErrorState = ERROR_STATE();
+        SET @Message = 'Error en sp_crear_actualizar_propuesta: Línea ' + CAST(ERROR_LINE() AS VARCHAR) + ' | ' + ERROR_MESSAGE();
+
+        IF LEN(@Message) > 200
+            SET @Message = LEFT(@Message, 200);
+
+        IF @InicieTransaccion = 1
+            ROLLBACK;
+
+        INSERT INTO vpv_logs (
+            description, posttime, computer, trace,
+            reference_id1, reference_id2, value1, value2,
+            checksum, log_typeid, log_sourceid, log_severityid
+        )
+        VALUES (
+            @Message, GETDATE(), HOST_NAME(), ERROR_PROCEDURE(),
+            @proposalid, @userid, CAST(@ErrorNumber AS VARCHAR), CAST(@ErrorState AS VARCHAR),
+            HASHBYTES('SHA1', @Message), @log_typeid, @log_sourceid, @log_severityid
+        );
+
+        RAISERROR('%s', 16, 1, @Message);
+    END CATCH
+
+	-- Limpieza final de recursos temporales
+    IF OBJECT_ID('tempdb..#documentMap') IS NOT NULL
+        DROP TABLE #documentMap;
+END
+GO
+```
+
 ### Endpoint revisarPropuesta
+http://localhost:3000/dev/api/revisarPropuesta
+
+#### JSON de prueba
+Se cambia el proposalid para validar diferentes propuestas
+```json
+{
+  "proposalid": 12
+}
+```
+
+#### Capa Handler (/functions/proposalReview.js)
+```javascript
+const { procesarRevisionPropuesta } = require('../services/proposalReviewService');
+
+module.exports.handler = async (event) => {
+  console.log('Entrando a revisarPropuesta (handler)');
+  
+  // Obtener datos del token
+  const data = JSON.parse(event.requestContext.authorizer.data);
+  const user = data.user;
+
+  try {
+    // Ejecutar el servicio
+    const result = await procesarRevisionPropuesta(event.body, user);
+    console.log('Revisión completada');
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(result)
+    };
+  } catch (err) {
+    console.error('Error al revisar propuesta:', err);
+    return {
+      statusCode: err.statusCode || 500,
+      body: JSON.stringify({
+        error: 'Error al revisar la propuesta',
+        detalles: err.message || 'Error desconocido'
+      })
+    };
+  }
+};
+```
+#### Capa Service (/services/proposalReviewService.js)
+```javascript
+const { reviewProposal } = require('../data/proposalReviewData');
+
+async function procesarRevisionPropuesta(body, user) {
+  // 1. Obtener el userid desde el token del usuario autenticado
+  const userid = user.userid;
+
+  // 2. Parsear y validar el body
+  const input = JSON.parse(body || '{}');
+
+  if (!input.proposalid) {
+    throw {
+      statusCode: 400,
+      message: 'Se requiere el identificador de la propuesta para revisarla.'
+    };
+  }
+
+  // 3. Preparar parámetros y ejecutar el SP
+  const params = {
+    proposalid: input.proposalid,
+    userid
+  };
+
+  console.log('[Service] Ejecutando revisión de propuesta con:', params);
+
+  return await reviewProposal(params);
+}
+
+module.exports = { procesarRevisionPropuesta };
+```
+
+#### Capa Data (/data/proposalReviewData.js)
+```javascript
+const { executeSP, sql } = require('../db/config');
+
+async function reviewProposal({ proposalid, userid }) {
+  console.log('[SP] Ejecutando sp_revisar_propuesta...');
+  return executeSP(
+    'sp_revisar_propuesta',
+    {
+      proposalid,
+      userid
+    },
+    {
+      proposalid: sql.Int,
+      userid: sql.Int
+    }
+  );
+}
+
+module.exports = { reviewProposal };
+```
+
+En esta capa se llama al SP correspondiente ejecutando una función que está almacenada en (db/config.js)
+```javascript
+async function executeSP(spName, params = {}, typesConfig = {}) {
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+
+    Object.entries(params).forEach(([key, value]) => {
+      // Usa configuración explícita o determina el tipo
+      const type = typesConfig[key] || determineType(key, value);
+      request.input(key, type, value);
+    });
+
+    const result = await request.execute(spName);
+    return result.recordset;
+  } catch (err) {
+    console.error(`Error en SP ${spName}:`, err);
+    throw err;
+  }
+}
+```
+
+#### Store Procedure revisar_propuesta
+```sql
+CREATE OR ALTER PROCEDURE [dbo].[sp_revisar_propuesta]
+    @proposalid INT,
+    @userid INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT;
+    DECLARE @Message NVARCHAR(4000);
+    DECLARE @InicieTransaccion BIT = 0;
+    DECLARE @now DATETIME = GETDATE();
+    DECLARE @cursor_initialized BIT = 0;
+    
+    -- Parametros para el log de errores
+    DECLARE @log_typeid INT, @log_sourceid INT, @log_severityid INT;
+    SELECT @log_severityid = log_severityid FROM vpv_log_severity WHERE name = 'Error';
+    SELECT @log_sourceid = log_sourceid FROM vpv_log_source WHERE name = 'Procedimiento sp_revisar_propuesta';
+    SELECT @log_typeid = log_typeid FROM vpv_log_type WHERE name = 'Error SQL';
+
+	CREATE TABLE #reviewSummary (
+		documentid INT,
+		reviewed_at DATETIME,
+		reviewed_by NVARCHAR(50)
+	);
+
+    IF @@TRANCOUNT = 0
+    BEGIN
+        SET @InicieTransaccion = 1;
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+        BEGIN TRANSACTION;
+    END
+
+    BEGIN TRY
+		-- Validar permiso por rol (PROP_APPROVE)
+		IF NOT EXISTS (
+			SELECT 1
+			FROM vpv_user_roles ur
+			JOIN vpv_rolepermissions rp ON rp.roleid = ur.roleid AND rp.enable = 1 AND rp.deleted = 0
+			JOIN vpv_permissions p ON p.permissionid = rp.permissionid
+			WHERE ur.userid = @userid AND ur.enabled = 1
+			  AND p.permissioncode = 'PROP_APPROVE'
+		)
+		BEGIN
+			SET @Message = 'El usuario no tiene permisos para aprobar propuestas.';
+			INSERT INTO vpv_logs (
+				description, posttime, computer, trace,
+				reference_id1, reference_id2, value1, value2,
+				checksum, log_typeid, log_sourceid, log_severityid
+			)
+			VALUES (
+				@Message, GETDATE(), HOST_NAME(), 'sp_revisar_propuesta',
+				NULL, @userid, NULL, NULL,
+				HASHBYTES('SHA1', @Message), @log_typeid, @log_sourceid, @log_severityid
+			);
+			RAISERROR(@Message, 16, 1);
+			RETURN;
+		END
+
+        -- Existe la propuesta
+        IF NOT EXISTS (SELECT 1 FROM vpv_proposal WHERE proposalid = @proposalid)
+        BEGIN
+            SET @Message = 'La propuesta ' + CAST(@proposalid AS VARCHAR) + ' no existe';
+            
+            -- Registrar en log
+            INSERT INTO vpv_logs (
+                description, posttime, computer, trace,
+                reference_id1, reference_id2, value1, value2,
+                checksum, log_typeid, log_sourceid, log_severityid
+            )
+            VALUES (
+                @Message, GETDATE(), HOST_NAME(), 'sp_revisar_propuesta',
+                @proposalid, @userid, NULL, NULL,
+                HASHBYTES('SHA1', @Message), @log_typeid, @log_sourceid, @log_severityid
+            );
+            
+            RAISERROR(@Message, 16, 1);
+            RETURN;
+        END
+
+        -- Crear solicitud
+        DECLARE @requestid INT;
+        INSERT INTO vpv_validation_request (creation_date, userid, validation_typeid)
+        VALUES (@now, @userid, 6);
+        SET @requestid = SCOPE_IDENTITY();
+
+        -- Comenzar la simulacion del workflow
+        DECLARE @documentid INT, @workflowid INT, @has_workflow BIT;
+        DECLARE @documents_processed INT = 0;
+
+        DECLARE cur CURSOR LOCAL FOR
+        SELECT 
+            dd.documentid, 
+            ISNULL(dw.workflowid, 0),
+            CASE WHEN dw.workflowid IS NULL THEN 0 ELSE 1 END
+        FROM vpv_proposal_documents pd
+        JOIN vpv_digital_documents dd ON dd.documentid = pd.documentid
+        LEFT JOIN vpv_document_workflows dw ON dd.documentid = dw.documentid AND dw.enabled = 1
+        WHERE pd.proposalid = @proposalid
+        ORDER BY ISNULL(dw.workflow_order, 99);
+
+        SET @cursor_initialized = 1;
+        OPEN cur;
+        FETCH NEXT FROM cur INTO @documentid, @workflowid, @has_workflow;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            IF @has_workflow = 1
+            BEGIN
+                -- Obtener parametros base del workflow
+                DECLARE @parameters NVARCHAR(MAX), @workflow_name NVARCHAR(100);
+                
+                SELECT 
+                    @workflow_name = workflow_name,
+                    @parameters = parameter
+                FROM vpv_validation_workflow
+                WHERE workflowid = @workflowid;
+
+                -- Simular delay de llamada a Airflow
+                -- WAITFOR DELAY '00:00:01'; Está comentado, pues lambda da un timeout si se queda "esperando"
+                
+				DECLARE @reviewed_at DATETIME = GETDATE();
+				DECLARE @reviewed_by NVARCHAR(50) = 'IA_AUTOMATICA';
+
+				INSERT INTO #reviewSummary (documentid, reviewed_at, reviewed_by)
+				VALUES (@documentid, @reviewed_at, @reviewed_by);
+            END
+            
+            -- Actualizar documento
+            UPDATE vpv_digital_documents
+            SET requestid = @requestid,
+                validation_date = @now
+            WHERE documentid = @documentid;
+
+            SET @documents_processed += 1;
+            FETCH NEXT FROM cur INTO @documentid, @workflowid, @has_workflow;
+        END
+
+        -- Verificar que se procesaron documentos
+        IF @documents_processed = 0
+        BEGIN
+            SET @Message = 'No se encontraron documentos para validar en la propuesta ' + CAST(@proposalid AS VARCHAR);
+            
+            -- Registrar en log
+            INSERT INTO vpv_logs (
+                description, posttime, computer, trace,
+                reference_id1, reference_id2, value1, value2,
+                checksum, log_typeid, log_sourceid, log_severityid
+            )
+            VALUES (
+                @Message, GETDATE(), HOST_NAME(), 'sp_revisar_propuesta',
+                @proposalid, @userid, NULL, NULL,
+                HASHBYTES('SHA1', @Message), @log_typeid, @log_sourceid, @log_severityid
+            );
+            
+            RAISERROR(@Message, 16, 1);
+        END
+
+        -- 3. Finalizar validaci�n (�xito autom�tico como indic� el encargado)
+        UPDATE vpv_validation_request
+        SET finish_date = @now,
+            global_result = '�xito'
+        WHERE requestid = @requestid;
+
+        -- 4. Aprobar propuesta (statusid = 3)
+        UPDATE vpv_proposal
+        SET statusid = 3
+        WHERE proposalid = @proposalid;
+
+		IF @InicieTransaccion = 1
+		BEGIN
+			SELECT 
+				'Éxito' AS resultado, 
+				@proposalid AS propuesta_aprobada,
+				@documents_processed AS documentos_procesados;
+
+			-- Toma los datos de reviewSummary para visualizar el resultado del workflow
+			SELECT 
+				r.documentid,
+				d.name,
+				r.reviewed_at,
+				r.reviewed_by
+			FROM #reviewSummary r
+			JOIN vpv_digital_documents d ON d.documentid = r.documentid;
+
+			COMMIT;
+		END
+    END TRY
+    BEGIN CATCH
+        SET @ErrorNumber = ERROR_NUMBER();
+        SET @ErrorSeverity = ERROR_SEVERITY();
+        SET @ErrorState = ERROR_STATE();
+        SET @Message = 'Error en sp_revisar_propuesta: ' + 
+                      'L�nea ' + CAST(ERROR_LINE() AS VARCHAR) + ' | ' + 
+                      ERROR_MESSAGE();
+
+		IF LEN(@Message) > 200
+			SET @Message = LEFT(@Message, 200);
+        
+        -- Manejo seguro del cursor en caso de error
+        IF @cursor_initialized = 1 AND CURSOR_STATUS('local','cur') >= 0
+        BEGIN
+            CLOSE cur;
+            DEALLOCATE cur;
+        END
+
+        IF @InicieTransaccion = 1
+            ROLLBACK;
+        
+        -- Log del error real 
+        INSERT INTO vpv_logs (
+            description,
+            posttime,
+            computer,
+            trace,
+            reference_id1,
+            reference_id2,
+            value1,
+            value2,
+            checksum,
+            log_typeid,
+            log_sourceid,
+            log_severityid
+        )
+        VALUES (
+            @Message,
+            GETDATE(),
+            HOST_NAME(),
+            ERROR_PROCEDURE(),
+            @proposalid,
+            @userid,
+            CAST(@ErrorNumber AS VARCHAR),
+            CAST(@ErrorState AS VARCHAR),
+            HASHBYTES('SHA1', @Message),
+            @log_typeid,
+            @log_sourceid,
+            @log_severityid
+        );
+        
+        -- Error "amigable" para la API
+        RAISERROR('%s', 16, 1, @Message);
+    END CATCH
+    
+    -- Liberaci�n final del cursor si a�n existe
+    IF @cursor_initialized = 1 AND CURSOR_STATUS('local','cur') >= 0
+    BEGIN
+        CLOSE cur;
+        DEALLOCATE cur;
+    END
+END
+GO
+```
+
+
 ### Endpoint invertir
 
 #### JSON de prueba 
