@@ -1173,12 +1173,25 @@ GO
 ```json
 {
   "proposalid": 2,
-  "monto": 185000.00,
+  "monto": 18500.00,
   "codigoPago": "PMT-USDC-20240625-1025A",
   "token": "ch_tok_26QCj2mJ7bP9H3xV5t8LkE4s",
   "metodoPagoId": 2
 }
 ```
+
+#### JSON Que da error por estado de proyecto:
+
+```json
+{
+  "proposalid": 3,
+  "monto": 18500.00,
+  "codigoPago": "PMT-USDC-20240625-1025A",
+  "token": "ch_tok_26QCj2mJ7bP9H3xV5t8LkE4s",
+  "metodoPagoId": 2
+}
+```
+
 #### Caoa Handler (/functions/investHandler.js)
 
 ```javascript
