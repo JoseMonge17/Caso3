@@ -1167,6 +1167,8 @@ GO
 
 
 ### Endpoint invertir
+ 
+http://localhost:3000/dev/api/invest
 
 #### JSON de prueba 
 
@@ -1808,7 +1810,9 @@ BEGIN
 END
 ```
 
-### Endpoint repartirDividendos
+### Endpoint repartirDividendos 
+
+http://localhost:3000/dev/api/distributeDividends
 
 #### JSON de prueba 
 
