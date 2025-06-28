@@ -3295,6 +3295,220 @@ async function registerEncryptedVote({ sessionid, eligibility, encryptedVote, si
 ```javascript
 ```
 ### Endpoint comentar
+http://localhost:3000/dev/api/comment
+
+### JSON de prueba
+```json
+{
+  "proposalid": 2,
+  "content": "Me parece una excelente propuesta. Tiene mucho potencial.",
+  "attachments": [
+    {
+      "filename": "documento_prueba.pdf",
+      "url": "https://mibucket.s3.amazonaws.com/documento_prueba.pdf",
+      "size": 123456
+    },
+    {
+      "filename": "respaldo.png",
+      "url": "https://mibucket.s3.amazonaws.com/respaldo.png",
+      "size": 34244
+    }
+  ]
+}
+```
+
+### Código
+
+Donde se llama al handler de la función
+```javascript
+const { comment } = require('../services/commentService');
+
+module.exports.handler = async (event) => 
+{
+    console.log('Llega bien al handler')
+    try 
+    {
+        // Aqui se llama la data del usuario que provee el middleware una vez realizado el proceso de autorización
+        const data = JSON.parse(event.requestContext.authorizer.data);
+
+        // Nos traemos la información enviada por la aplicación o en este caso el Postman
+        const body = JSON.parse(event.body);
+
+
+        // Llamada a la función del service correspondiente donde se va a manejar toda la lógica
+        const result = await comment(data, body);
+
+        // Retorno de la API para mostrar en la aplicación o en este caso el Postman
+        return {
+            statusCode: 200,
+            body: JSON.stringify(result)
+        };
+
+    } catch (error) 
+    {
+        // Retorno en caso de error de la API para mostrar en la aplicación o en este caso el Postman
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: error.message })
+        };
+    }
+};
+```
+
+### Obtención de Data
+```javascript
+const { VpvValidationRequest, VpvValidationType } = require('../db/sequelize');
+
+/**
+ * Simula un proceso de validación automática (como si lo hiciera Airflow)
+ * @param {int} userid - Objeto con los datos del documento
+ * @returns {Promise<{ success: boolean, global_result: string }>}
+ */
+async function workflow(userid, transaction) {
+
+    const validation_typeid = await getValidationTypeIdByName('Validación de comentario'); // Tipo de validacion especifico
+
+    console.log
+    const request = await VpvValidationRequest.create({
+        creation_date: new Date(),
+        userid,
+        validation_typeid
+    }, { transaction });
+
+    //await new Promise(resolve => setTimeout(resolve, 1000));
+
+    await request.update({
+        finish_date: new Date(),
+        global_result: 'Éxito'
+    }, { transaction });
+
+    return {
+        success: true,
+        global_result: 'Éxito'
+    };
+}
+
+/**
+ * Busca el ID de un tipo de validación por su nombre
+ * @param {string} name - Nombre del tipo de validación
+ * @returns {Promise<number>} - ID del tipo de validación
+ */
+async function getValidationTypeIdByName(name) {  // Input: validacion de comentario (esta en el llenado)
+    const type = await VpvValidationType.findOne({ // Encuentra el primero
+        where: { name }
+    });
+
+    if (!type) throw new Error(`Tipo de validación no encontrado: '${name}'`); 
+
+    return type.validation_typeid; // nulo en el caso de no encontrar
+}
+
+module.exports = {
+    getValidationTypeIdByName,
+    workflow
+};
+```
+
+### Lógica de la función - Service
+```javascript
+const { getProposalById } = require('../data/proposalData');
+const { insertComment, insertRejectedCommentLog, insertAttachmentAndLink } = require('../data/commentData.js');
+const { workflow } = require('../data/documentData')
+const crypto = require('crypto');
+const { sequelize } = require('../db/sequelize');
+
+async function comment(data, body) 
+{
+    const user = data.user;
+    const { proposalid, content, attachments = [] } = body;
+    
+    // Verificar si la propuesta permite comentarios
+    const proposal = await getProposalById(proposalid);
+    if (!proposal) throw new Error('Propuesta no encontrada');
+    if (!proposal.allows_comments) throw new Error('Esta propuesta no permite comentarios');
+
+    // Validar sesión activa
+    if (!user) throw new Error('Usuario no encontrado');
+
+    // Validar estado
+    if (user.status.name !== "Active") throw new Error(`Usuario en estado '${user.status.name}'`);
+
+    //Analizar el comentario y validar que cumpla con la estructura y documentación requerida
+    const passedValidation = Math.random() > 0.25; // Simulación IA: 75% chance éxito
+
+    //Procesar validación automática de documentos o contenido adjunto (uso de IA opcional)
+    const timestamp = new Date();
+    const integrityHash = crypto
+        .createHash('sha256')
+        .update(`${user.userid}|${content}|${timestamp.toISOString()}`)
+        .digest('hex');
+    
+    let message = ""
+    try 
+    {
+        const result = await sequelize.transaction(async (transaction) => 
+        {
+            if (passedValidation) // Caso de validación pasada
+            {
+                let documentids = []
+                // Validar y registrar attachments
+                for (const file of attachments) {
+                    const validacion = await workflow(user.userid, transaction); // simula ejecución de workflow donde se manda la validation request
+                    if (!validacion.success) {
+                        throw new Error(`Archivo adjunto rechazado: ${file.filename}`);
+                    }
+                    const doc = await insertAttachmentAndLink({ // Adjunta el enlace del digital document
+                        proposalid,
+                        file,
+                        commentContext: {
+                            userid: user.userid,
+                            timestamp
+                        }
+                    }, transaction);
+                    console.log("Cree files")
+                    documentids.push(doc.documentid)
+                }
+
+                //Si se acepta, subir el comentario a la base con metadatos de usuario, propuesta y estado
+
+                //Todos los comentarios deben tener un estado: pendiente, aprobado o rechazado
+
+                await insertComment({ // Inserción a la tabla vpv_proposal_comments
+                    userid: user.userid,
+                    proposalid,
+                    content,
+                    status: 'approved',
+                    createdAt: timestamp,
+                    integrityHash
+                },documentids, transaction);
+                console.log("Crear Comentario")
+                message = "Comentario aprobado y registrado correctamente";
+            }
+            else
+            {
+                //Si se rechaza, registrar el intento con motivo del rechazo y timestamp
+                await insertRejectedCommentLog({
+                    userid: user.userid,
+                    proposalid,
+                    attemptedContent: content,
+                    reason: 'Rechazado por validación automática',
+                    createdAt: timestamp
+                });
+
+                message = "Comentario rechazado por validación automática";
+            }
+        })
+
+        return {message}
+    } catch (error) {
+        console.error('Error en transacción de voto: ', error);
+        return { success: false, error: error.message };
+    }
+}
+
+module.exports = { comment };
+```
+
 ### Endpoint listarVotos
 http://localhost:3000/dev/api/listVotes
 

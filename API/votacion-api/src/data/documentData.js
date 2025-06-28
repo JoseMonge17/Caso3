@@ -7,7 +7,7 @@ const { VpvValidationRequest, VpvValidationType } = require('../db/sequelize');
  */
 async function workflow(userid, transaction) {
 
-    const validation_typeid = await getValidationTypeIdByName('Validación de comentario');
+    const validation_typeid = await getValidationTypeIdByName('Validación de comentario'); // Tipo de validacion especifico
 
     console.log
     const request = await VpvValidationRequest.create({
@@ -34,14 +34,14 @@ async function workflow(userid, transaction) {
  * @param {string} name - Nombre del tipo de validación
  * @returns {Promise<number>} - ID del tipo de validación
  */
-async function getValidationTypeIdByName(name) {
-    const type = await VpvValidationType.findOne({
+async function getValidationTypeIdByName(name) {  // Input: validacion de comentario (esta en el llenado)
+    const type = await VpvValidationType.findOne({ // Encuentra el primero
         where: { name }
     });
 
-    if (!type) throw new Error(`Tipo de validación no encontrado: '${name}'`);
+    if (!type) throw new Error(`Tipo de validación no encontrado: '${name}'`); 
 
-    return type.validation_typeid;
+    return type.validation_typeid; // nulo en el caso de no encontrar
 }
 
 module.exports = {

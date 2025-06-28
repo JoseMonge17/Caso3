@@ -9,15 +9,15 @@ async function comment(data, body)
     const user = data.user;
     const { proposalid, content, attachments = [] } = body;
     
-    //Verificar si la propuesta permite comentarios
+    // Verificar si la propuesta permite comentarios
     const proposal = await getProposalById(proposalid);
     if (!proposal) throw new Error('Propuesta no encontrada');
     if (!proposal.allows_comments) throw new Error('Esta propuesta no permite comentarios');
 
-    //Validar sesión activa
+    // Validar sesión activa
     if (!user) throw new Error('Usuario no encontrado');
 
-    //      Validar estado
+    // Validar estado
     if (user.status.name !== "Active") throw new Error(`Usuario en estado '${user.status.name}'`);
 
     //Analizar el comentario y validar que cumpla con la estructura y documentación requerida
@@ -35,16 +35,16 @@ async function comment(data, body)
     {
         const result = await sequelize.transaction(async (transaction) => 
         {
-            if (passedValidation)
+            if (passedValidation) // Caso de validación pasada
             {
                 let documentids = []
                 // Validar y registrar attachments
                 for (const file of attachments) {
-                    const validacion = await workflow(user.userid, transaction); // simula ejecución de workflow
+                    const validacion = await workflow(user.userid, transaction); // simula ejecución de workflow donde se manda la validation request
                     if (!validacion.success) {
                         throw new Error(`Archivo adjunto rechazado: ${file.filename}`);
                     }
-                    const doc = await insertAttachmentAndLink({
+                    const doc = await insertAttachmentAndLink({ // Adjunta el enlace del digital document
                         proposalid,
                         file,
                         commentContext: {
@@ -60,7 +60,7 @@ async function comment(data, body)
 
                 //Todos los comentarios deben tener un estado: pendiente, aprobado o rechazado
 
-                await insertComment({
+                await insertComment({ // Inserción a la tabla vpv_proposal_comments
                     userid: user.userid,
                     proposalid,
                     content,
@@ -68,13 +68,12 @@ async function comment(data, body)
                     createdAt: timestamp,
                     integrityHash
                 },documentids, transaction);
-                console.log("Cree Comentario")
+                console.log("Crear Comentario")
                 message = "Comentario aprobado y registrado correctamente";
             }
             else
             {
                 //Si se rechaza, registrar el intento con motivo del rechazo y timestamp
-
                 await insertRejectedCommentLog({
                     userid: user.userid,
                     proposalid,
