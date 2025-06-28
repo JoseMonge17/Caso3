@@ -39,11 +39,13 @@ async function comment(data, body)
         .update(`${user.userid}|${content}|${timestamp.toISOString()}`)
         .digest('hex');
 
+
     if (passedValidation)
     {
+        console.log("Pase validacion")
         // Validar y registrar attachments
         for (const file of attachments) {
-            const validacion = await workflow(file); // simula ejecución de workflow
+            const validacion = await workflow(user.userid); // simula ejecución de workflow
             if (!validacion.success) {
                 throw new Error(`Archivo adjunto rechazado: ${file.filename}`);
             }
