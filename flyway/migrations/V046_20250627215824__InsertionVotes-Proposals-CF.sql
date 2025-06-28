@@ -313,6 +313,61 @@ VALUES
 (7, 'Discapacidad');
 
 
+INSERT INTO [dbo].[vpv_demographic_data] ([code], [description], [demographic_typeid])
+VALUES 
+-- Género (tipo 1)
+('GEN01', 'Masculino', 1),
+('GEN02', 'Femenino', 1),
+('GEN03', 'No binario', 1),
+('GEN04', 'Prefiero no decir', 1),
+
+-- Grupos de edad (tipo 2)
+('AGE01', '18-25 años', 2),
+('AGE02', '26-35 años', 2),
+('AGE03', '36-45 años', 2),
+('AGE04', '46-55 años', 2),
+('AGE05', '56-65 años', 2),
+('AGE06', '66+ años', 2),
+
+-- Regiones (tipo 3)
+('REG01', 'San José Central', 3),
+('REG02', 'Heredia', 3),
+('REG03', 'Alajuela', 3),
+('REG04', 'Cartago', 3),
+('REG05', 'Limón', 3),
+('REG06', 'Puntarenas', 3),
+('REG07', 'Guanacaste', 3),
+('REG08', 'Zona Sur', 3),
+
+-- Nivel educativo (tipo 4)
+('EDU01', 'Primaria', 4),
+('EDU02', 'Secundaria', 4),
+('EDU03', 'Técnico', 4),
+('EDU04', 'Universitario', 4),
+('EDU05', 'Posgrado', 4),
+
+-- Ocupación (tipo 5)
+('OCC01', 'Estudiante', 5),
+('OCC02', 'Empleado sector público', 5),
+('OCC03', 'Empleado sector privado', 5),
+('OCC04', 'Empresario', 5),
+('OCC05', 'Independiente', 5),
+('OCC06', 'Jubilado', 5),
+('OCC07', 'Desempleado', 5),
+
+-- Nivel de ingresos (tipo 6)
+('INC01', 'Menos de ¢300,000', 6),
+('INC02', '¢300,000 - ¢600,000', 6),
+('INC03', '¢600,001 - ¢900,000', 6),
+('INC04', '¢900,001 - ¢1,200,000', 6),
+('INC05', 'Más de ¢1,200,000', 6),
+
+-- Discapacidad (tipo 7)
+('DIS01', 'Sin discapacidad', 7),
+('DIS02', 'Discapacidad física', 7),
+('DIS03', 'Discapacidad visual', 7),
+('DIS04', 'Discapacidad auditiva', 7),
+('DIS05', 'Otra discapacidad', 7);
 
 INSERT INTO [dbo].[vpv_user_demographics] ([enabled], [value], [demographicid], [userid])
 VALUES 
