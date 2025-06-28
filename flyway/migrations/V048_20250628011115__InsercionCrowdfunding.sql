@@ -46,8 +46,6 @@ INSERT INTO cf_sectors (name) VALUES
 ('Servicios Profesionales'),
 ('Investigación y Desarrollo');
 
-DELETE FROM cf_projects
-DBCC CHECKIDENT ('cf_projects',RESEED,0)
 /*
 ******************************************************************
 1. Infraestructura Pública (Boulevard Cartago)
