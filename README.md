@@ -3306,8 +3306,8 @@ http://localhost:3000/dev/api/comment
 
 ### Código
 
-Donde se llama al hander de la función
-```json
+Donde se llama al handler de la función
+```javascript
 const { comment } = require('../services/commentService');
 
 module.exports.handler = async (event) => 
