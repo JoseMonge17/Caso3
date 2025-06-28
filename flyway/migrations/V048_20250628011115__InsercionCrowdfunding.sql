@@ -218,6 +218,12 @@ VALUES
 ('Pruebas beta', 'Pruebas con usuarios piloto', '2024-06-30', NULL, 20.00, 1, 0, 3, 3),
 ('Lanzamiento oficial', 'Disponible para público general', '2024-07-15', NULL, 10.00, 1, 0, 3, 3);
 
+INSERT INTO vpv_paymentstatus (name) VALUES 
+('Completed'),
+('Pending'),
+('Failed'),
+('Reversed'),
+('On Hold');
 
 INSERT INTO [dbo].[vpv_payments] (
     [amount], [taxamount], [discountporcent], [realamount], [result], 
@@ -471,12 +477,7 @@ INSERT INTO vpv_currencies (name, acronym, country, symbol) VALUES
 ('US Dollar', 'USD', 'United States', '$');
 
 
-INSERT INTO vpv_paymentstatus (name) VALUES 
-('Completed'),
-('Pending'),
-('Failed'),
-('Reversed'),
-('On Hold');
+
 
 
 
